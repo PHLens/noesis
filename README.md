@@ -52,11 +52,14 @@ Noesis must not:
 
 Implemented:
 
+- `bin/noesis`: CLI entrypoint
+- `noesis/skill_manager.py`: first skill-manager CLI slice for symlink skill visibility
 - `skills/writeback-router/`: classifies durable residue and emits writeback intent
 - `examples/writeback-intent.example.json`: example intent artifact
 - `evals/writeback-routing.jsonl`: golden routing cases
 - `evals/run-writeback-routing-evals.py`: routing eval runner
 - `tests/routing_eval/`: routing eval tests
+- `tests/skill_manager/`: skill-manager CLI tests
 
 Not yet implemented:
 
@@ -65,8 +68,8 @@ Not yet implemented:
 - skill proposal lifecycle
 - learning review workflow
 - compression loop
-- skill-manager integration
-- unified CLI
+- plugin capability lifecycle
+- runtime capability lifecycle beyond agent/workspace resolution
 
 Removed from active Noesis scope:
 
@@ -87,8 +90,30 @@ task / conversation
 
 The safe default is autonomous proposal, not autonomous application.
 
+## CLI
+
+The current repository-local entrypoint is:
+
+```bash
+bin/noesis --help
+```
+
+The first implemented command family is the skill manager:
+
+```bash
+bin/noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
+bin/noesis skill inspect <name> [--source ~/skills/<name>] [--json]
+bin/noesis skill verify [name] [--json]
+bin/noesis skill add <name> [--source ~/skills/<name>] [--alias <alias>] [--json]
+bin/noesis skill remove <name> [--json]
+```
+
+This first slice manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves sources under `~/skills`, creates relative symlinks, refuses non-symlink conflicts, removes only visibility links, and uses `pamem status --agent-id <id> --json` for agent workspace resolution.
+
 ## Key Files
 
+- `bin/noesis`: repository-local CLI
+- `noesis/skill_manager.py`: symlink skill visibility manager
 - `docs/architecture.md`: current system boundary
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
 - `findings.md`: accepted decisions and design findings
