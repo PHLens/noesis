@@ -1,0 +1,49 @@
+{
+  "schema_version": "0.1",
+  "intent_id": "2026-04-27T15-30-00Z__writeback",
+  "created_at": "2026-04-27T15:30:00Z",
+  "workspace": "/home/cambricon/noesis-agent",
+  "task_summary": "Design the first version of the writeback-router skill.",
+  "source_refs": [
+    {
+      "type": "file",
+      "ref": "docs/superpowers/specs/2026-04-27-writeback-router-design.md",
+      "summary": "Approved design spec defining writeback-router scope and schema."
+    }
+  ],
+  "items": [
+    {
+      "id": "item-1",
+      "title": "Plugin update scope behavior",
+      "summary": "Claude plugin update checks user scope by default, so project-scoped plugins require an explicit project scope and correct working directory.",
+      "category": "meta",
+      "destination": "pamem-experience",
+      "confidence": "high",
+      "review_required": false,
+      "suggested_action": "append-experience",
+      "reason": "This is a reusable low-risk tool behavior discovery that can improve future plugin maintenance."
+    },
+    {
+      "id": "item-2",
+      "title": "Writeback router schema",
+      "summary": "The writeback-router artifact uses a batch intent with independently routed items.",
+      "category": "domain",
+      "destination": "wiki-stage",
+      "confidence": "medium",
+      "review_required": true,
+      "suggested_action": "stage-wiki-note",
+      "reason": "This is durable design knowledge that belongs in a domain wiki only after review."
+    },
+    {
+      "id": "item-3",
+      "title": "Temporary command output",
+      "summary": "A one-time git status check confirmed the exploration repo was clean.",
+      "category": "transient",
+      "destination": "none",
+      "confidence": "high",
+      "review_required": false,
+      "suggested_action": "discard",
+      "reason": "The command output has no future decision value after the task is closed."
+    }
+  ]
+}
