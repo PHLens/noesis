@@ -1052,6 +1052,14 @@ test('protected pamem-provided skills are not standalone symlink skills', (t) =>
   fs.mkdirSync(home);
   fs.mkdirSync(workspace);
 
+  const inspect = runNoesis(['skill', 'inspect', 'memory-lint'], { cwd: workspace, home, check: false });
+  assert.equal(inspect.status, 1);
+  assert.match(inspect.stderr, /provided by pamem/);
+
+  const verify = runNoesis(['skill', 'verify', 'memory-lint'], { cwd: workspace, home, check: false });
+  assert.equal(verify.status, 1);
+  assert.match(verify.stderr, /provided by pamem/);
+
   const add = runNoesis(['skill', 'add', 'memory-rule'], { cwd: workspace, home, check: false });
   assert.equal(add.status, 1);
   assert.match(add.stderr, /provided by pamem/);
