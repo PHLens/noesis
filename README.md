@@ -119,6 +119,8 @@ noesis skill remove <name> [--json]
 
 This first slice manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, refuses non-symlink conflicts, removes only visibility links, and uses `pamem status --agent-id <id> --json` for agent workspace resolution.
 
+`@phlens/pamem` is a package dependency so `--agent-id` can resolve through the installed pamem bin. If the dependency bin is unavailable, the CLI falls back to `pamem` on `PATH`.
+
 ## Key Files
 
 - `package.json`: npm package and bin metadata
