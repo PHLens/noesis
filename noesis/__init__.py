@@ -1,1 +1,0 @@
-"""Noesis command modules."""

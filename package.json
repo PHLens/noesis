@@ -1,0 +1,27 @@
+{
+  "name": "@phlens/noesis",
+  "version": "0.1.0",
+  "description": "Noesis learning control plane utilities.",
+  "bin": {
+    "noesis": "bin/noesis"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "skills/",
+    "evals/run-writeback-routing-evals.py",
+    "evals/writeback-routing.jsonl",
+    "examples/writeback-intent.example.json",
+    "docs/",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check bin/noesis && node --check lib/*.mjs && node --check tests/*.mjs && python3 -m py_compile evals/run-writeback-routing-evals.py tests/routing_eval/test_writeback_routing_evals.py",
+    "test": "python3 -m unittest discover -s tests && node --test tests/skill_manager.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

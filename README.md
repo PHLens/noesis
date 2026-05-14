@@ -52,14 +52,15 @@ Noesis must not:
 
 Implemented:
 
-- `bin/noesis`: CLI entrypoint
-- `noesis/skill_manager.py`: first skill-manager CLI slice for symlink skill visibility
+- `package.json`: npm package metadata for `@phlens/noesis`
+- `bin/noesis`: Node CLI entrypoint
+- `lib/skill-manager.mjs`: first skill-manager CLI slice for symlink skill visibility
 - `skills/writeback-router/`: classifies durable residue and emits writeback intent
 - `examples/writeback-intent.example.json`: example intent artifact
 - `evals/writeback-routing.jsonl`: golden routing cases
 - `evals/run-writeback-routing-evals.py`: routing eval runner
 - `tests/routing_eval/`: routing eval tests
-- `tests/skill_manager/`: skill-manager CLI tests
+- `tests/skill_manager.test.mjs`: skill-manager CLI tests
 
 Not yet implemented:
 
@@ -90,30 +91,39 @@ task / conversation
 
 The safe default is autonomous proposal, not autonomous application.
 
-## CLI
+## Install And CLI
 
-The current repository-local entrypoint is:
+Noesis is an npm package with a `noesis` bin:
 
 ```bash
-bin/noesis --help
+npm install -g git+ssh://git@github.com/PHLens/noesis.git
+noesis --help
+```
+
+From a local checkout, use:
+
+```bash
+npm install -g .
+noesis --help
 ```
 
 The first implemented command family is the skill manager:
 
 ```bash
-bin/noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
-bin/noesis skill inspect <name> [--source ~/skills/<name>] [--json]
-bin/noesis skill verify [name] [--json]
-bin/noesis skill add <name> [--source ~/skills/<name>] [--alias <alias>] [--json]
-bin/noesis skill remove <name> [--json]
+noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
+noesis skill inspect <name> [--source <path>] [--json]
+noesis skill verify [name] [--json]
+noesis skill add <name> [--source <path>] [--alias <alias>] [--json]
+noesis skill remove <name> [--json]
 ```
 
-This first slice manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves sources under `~/skills`, creates relative symlinks, refuses non-symlink conflicts, removes only visibility links, and uses `pamem status --agent-id <id> --json` for agent workspace resolution.
+This first slice manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, refuses non-symlink conflicts, removes only visibility links, and uses `pamem status --agent-id <id> --json` for agent workspace resolution.
 
 ## Key Files
 
-- `bin/noesis`: repository-local CLI
-- `noesis/skill_manager.py`: symlink skill visibility manager
+- `package.json`: npm package and bin metadata
+- `bin/noesis`: Node CLI entrypoint
+- `lib/skill-manager.mjs`: symlink skill visibility manager
 - `docs/architecture.md`: current system boundary
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
 - `findings.md`: accepted decisions and design findings

@@ -45,7 +45,7 @@ Noesis decides and records. Downstream systems execute their own changes.
 - apply approved skill proposals
 - report current capability inventory
 
-The current CLI slice lives under `bin/noesis skill ...` and manages symlink-based skills exposed through `.codex/skills/` and `.claude/skills/`. It intentionally does not edit source skill directories under `~/skills`.
+The current CLI slice is the npm `noesis` bin and manages symlink-based skills exposed through `.codex/skills/` and `.claude/skills/`. Managed sources live under this package's `skills/`; `~/skills` remains an external compatibility source.
 
 `Noesis` owns learning control:
 
@@ -113,11 +113,11 @@ Noesis detects repeated workflow
 Initial implemented commands:
 
 ```bash
-bin/noesis skill list
-bin/noesis skill inspect <name>
-bin/noesis skill verify [name]
-bin/noesis skill add <name>
-bin/noesis skill remove <name>
+noesis skill list
+noesis skill inspect <name>
+noesis skill verify [name]
+noesis skill add <name>
+noesis skill remove <name>
 ```
 
 Supported target resolution:
@@ -126,6 +126,12 @@ Supported target resolution:
 - explicit `--workspace <path>`
 - pamem agent home via `--agent-id <id>` and `pamem status --agent-id <id> --json`
 - explicit global scope via `--global`
+
+Supported source resolution:
+
+- managed package source under `skills/`, searched first
+- external compatibility source under `~/skills`
+- explicit `--source <path>` under either supported root
 
 Future skill-manager work should add plugin capability support, runtime capability support, and approved skill proposal application without moving memory governance into Noesis.
 
