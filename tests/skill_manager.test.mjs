@@ -25,6 +25,25 @@ function withTempDir(t) {
 }
 
 
+function makeProjectPamem(t, outputRoot) {
+  const binDir = path.join(REPO_ROOT, 'node_modules', '.bin');
+  const pamem = path.join(binDir, process.platform === 'win32' ? 'pamem.cmd' : 'pamem');
+  fs.mkdirSync(binDir, { recursive: true });
+  const previous = fs.existsSync(pamem) ? fs.readFileSync(pamem) : null;
+  fs.writeFileSync(
+    pamem,
+    process.platform === 'win32'
+      ? `@echo off\r\necho {"status":"ok","root":"${outputRoot.replaceAll('\\', '\\\\')}"}\r\n`
+      : `#!/bin/sh\nprintf '%s\\n' '{"status":"ok","root":"${outputRoot}"}'\n`,
+  );
+  fs.chmodSync(pamem, 0o755);
+  t.after(() => {
+    if (previous === null) fs.rmSync(pamem, { force: true });
+    else fs.writeFileSync(pamem, previous);
+  });
+}
+
+
 function runNoesis(args, { cwd, home, env = {}, check = true }) {
   const result = spawnSync(process.execPath, [NOESIS, ...args], {
     cwd,
@@ -279,5 +298,25 @@ exit 1
 
   assert.equal(data.target.resolver, 'pamem-status');
   assert.equal(data.target.agent_id, 'agent-1');
+  assert.equal(data.target.root, path.resolve(workspace));
+});
+
+
+test('agent-id resolution prefers installed pamem dependency bin', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'agent-home');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  makeProjectPamem(t, workspace);
+
+  const result = runNoesis(['skill', 'list', '--agent-id', 'agent-1', '--json'], {
+    cwd: root,
+    home,
+    env: { PATH: root },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.target.resolver, 'pamem-status');
   assert.equal(data.target.root, path.resolve(workspace));
 });

@@ -127,6 +127,8 @@ Supported target resolution:
 - pamem agent home via `--agent-id <id>` and `pamem status --agent-id <id> --json`
 - explicit global scope via `--global`
 
+`@phlens/pamem` is an npm dependency of `@phlens/noesis` for this `--agent-id` resolution path. The CLI prefers the installed dependency bin and falls back to `pamem` on `PATH`.
+
 Supported source resolution:
 
 - managed package source under `skills/`, searched first
