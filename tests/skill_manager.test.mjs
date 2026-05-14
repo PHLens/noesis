@@ -67,17 +67,24 @@ if (!workspace) process.exit(2);
 if (command === 'install') {
   fs.writeFileSync(path.join(workspace, 'pamem-args.json'), JSON.stringify(process.argv.slice(2)) + '\\n');
   fs.mkdirSync(path.join(workspace, '.codex'), { recursive: true });
-  fs.mkdirSync(path.join(workspace, '.pamem'), { recursive: true });
-  fs.mkdirSync(path.join(workspace, 'notes'), { recursive: true });
+  const agentHome = process.argv.includes('--agent-home');
+  if (agentHome) {
+    fs.writeFileSync(path.join(workspace, 'config.toml'), 'default_profile = "coder"\\n');
+    fs.writeFileSync(path.join(workspace, 'current-task.md'), '# Current Task\\n');
+    fs.writeFileSync(path.join(workspace, 'work-log.md'), '# Work Log\\n');
+  } else {
+    fs.mkdirSync(path.join(workspace, '.pamem'), { recursive: true });
+    fs.mkdirSync(path.join(workspace, 'notes'), { recursive: true });
+    fs.writeFileSync(path.join(workspace, 'MEMORY.md'), '# Memory\\n');
+    fs.writeFileSync(path.join(workspace, 'notes', 'current-task.md'), '# Current Task\\n');
+    fs.writeFileSync(path.join(workspace, 'notes', 'work-log.md'), '# Work Log\\n');
+  }
   fs.writeFileSync(path.join(workspace, '.codex', 'config.toml'), '[features]\\ncodex_hooks = true\\n');
   fs.writeFileSync(path.join(workspace, '.codex', 'hooks.json'), JSON.stringify({
     hooks: {
-      SessionStart: [{ matcher: 'startup|resume', hooks: [{ type: 'command', command: '.pamem/scripts/memory-session-start.sh' }] }],
+      SessionStart: [{ matcher: 'startup|resume', hooks: [{ type: 'command', command: agentHome ? '/opt/pamem/scripts/memory-session-start.sh' : '.pamem/scripts/memory-session-start.sh' }] }],
     },
   }, null, 2) + '\\n');
-  fs.writeFileSync(path.join(workspace, 'MEMORY.md'), '# Memory\\n');
-  fs.writeFileSync(path.join(workspace, 'notes', 'current-task.md'), '# Current Task\\n');
-  fs.writeFileSync(path.join(workspace, 'notes', 'work-log.md'), '# Work Log\\n');
   process.exit(0);
 }
 if (command === 'status') {
@@ -910,6 +917,40 @@ test('pamem codex install passes agent-home mode for pamem agent homes', (t) => 
   const data = JSON.parse(result.stdout);
   assert.equal(data.target.kind, 'agent-home');
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(workspace, 'pamem-args.json'), 'utf8')), ['install', workspace, '--agent-home']);
+  assert.equal(data.capability.runtimes.codex.status, 'ok');
+  assert.equal(data.capability.runtimes.codex.hooks.command, '/opt/pamem/scripts/memory-session-start.sh');
+  assert.equal(data.capability.runtimes.codex.hooks.expected_command, null);
+  assert.equal(data.capability.runtimes.codex.pamem_config.path, path.join(workspace, 'config.toml'));
+  assert.equal(data.capability.runtimes.codex.current_task.path, path.join(workspace, 'current-task.md'));
+  assert.equal(data.capability.runtimes.codex.work_log.path, path.join(workspace, 'work-log.md'));
+  assert.equal(data.capability.runtimes.codex.foundation, undefined);
+  assert.equal(data.capability.runtimes.codex.memory, undefined);
+});
+
+
+test('pamem codex install does not force agent-home mode for agent target with workspace config', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace-memory');
+  fs.mkdirSync(home);
+  fs.mkdirSync(path.join(workspace, '.pamem'), { recursive: true });
+  fs.writeFileSync(path.join(workspace, '.pamem', 'config.toml'), 'default_profile = "coder"\n');
+  makeProjectPamemCommand(t);
+
+  const result = runNoesis(['skill', 'add', 'pamem', '--agent-id', 'agent-1', '--runtime', 'codex', '--json'], {
+    cwd: root,
+    home,
+    env: { FAKE_PAMEM_AGENT_ROOT: workspace },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.target.kind, 'agent-home');
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(workspace, 'pamem-args.json'), 'utf8')), ['install', workspace]);
+  assert.equal(data.capability.runtimes.codex.status, 'ok');
+  assert.equal(data.capability.runtimes.codex.hooks.command, '.pamem/scripts/memory-session-start.sh');
+  assert.equal(data.capability.runtimes.codex.foundation.path, path.join(workspace, '.pamem'));
+  assert.equal(data.capability.runtimes.codex.memory.path, path.join(workspace, 'MEMORY.md'));
+  assert.equal(data.capability.runtimes.codex.pamem_config, undefined);
 });
 
 
@@ -924,6 +965,45 @@ test('pamem add requires runtime when target type is ambiguous', (t) => {
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /requires --runtime/);
+});
+
+
+test('pamem codex verification rejects wrong workspace SessionStart hook command', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(path.join(workspace, '.codex'), { recursive: true });
+  fs.mkdirSync(path.join(workspace, '.pamem'), { recursive: true });
+  fs.mkdirSync(path.join(workspace, 'notes'), { recursive: true });
+  fs.writeFileSync(path.join(workspace, '.codex', 'config.toml'), '[features]\ncodex_hooks = true\n');
+  fs.writeFileSync(
+    path.join(workspace, '.codex', 'hooks.json'),
+    `${JSON.stringify({
+      hooks: {
+        SessionStart: [
+          {
+            matcher: 'startup|resume',
+            hooks: [
+              { type: 'command', command: '/opt/pamem/scripts/memory-session-start.sh' },
+            ],
+          },
+        ],
+      },
+    }, null, 2)}\n`,
+  );
+  fs.writeFileSync(path.join(workspace, 'MEMORY.md'), '# Memory\n');
+  fs.writeFileSync(path.join(workspace, 'notes', 'current-task.md'), '# Current Task\n');
+  fs.writeFileSync(path.join(workspace, 'notes', 'work-log.md'), '# Work Log\n');
+
+  const result = runNoesis(['skill', 'verify', 'pamem', '--json'], { cwd: workspace, home, check: false });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(data.status, 'failed');
+  assert.equal(data.capabilities[0].runtimes.codex.status, 'missing');
+  assert.equal(data.capabilities[0].runtimes.codex.hooks.status, 'missing');
+  assert.equal(data.capabilities[0].runtimes.codex.hooks.expected_command, '.pamem/scripts/memory-session-start.sh');
 });
 
 
