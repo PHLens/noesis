@@ -120,6 +120,14 @@ noesis skill add <name>
 noesis skill remove <name>
 ```
 
+The CLI also supports command-specific help:
+
+```bash
+noesis --help
+noesis help skill
+noesis skill add --help
+```
+
 Supported target resolution:
 
 - current working directory by default
@@ -135,7 +143,14 @@ Supported source resolution:
 - external compatibility source under `~/skills`
 - explicit `--source <path>` under either supported root
 
-Future skill-manager work should add plugin capability support, runtime capability support, and approved skill proposal application without moving memory governance into Noesis.
+Current read-only capability status support:
+
+- Claude plugin capabilities: `humanize`, `superpowers`
+- runtime capability: `pamem`
+
+Read-only `list`, `inspect`, and `verify` report those capabilities from `.claude/settings.json` and Codex pamem bootstrap files. Mutating plugin/runtime capabilities remains a future step; `add/remove` currently reject those names instead of making partial or hidden changes.
+
+Future skill-manager work should add plugin capability mutation support, runtime capability mutation support, and approved skill proposal application without moving memory governance into Noesis.
 
 ## Non-Goals
 

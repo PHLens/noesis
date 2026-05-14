@@ -81,6 +81,36 @@ function makeManagedSkill(t, name) {
 }
 
 
+test('top-level help, version, and command help do not touch the workspace', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+
+  const top = runNoesis(['--help'], { cwd: workspace, home });
+  assert.match(top.stdout, /Usage: noesis <command> \[args\]/);
+  assert.match(top.stdout, /noesis help skill add/);
+
+  const skill = runNoesis(['help', 'skill'], { cwd: workspace, home });
+  assert.match(skill.stdout, /Usage: noesis skill <command> \[args\]/);
+  assert.match(skill.stdout, /Use "noesis skill <command> --help"/);
+
+  const add = runNoesis(['skill', 'add', '--help'], { cwd: workspace, home });
+  assert.match(add.stdout, /Usage: noesis skill add <name>/);
+  assert.match(add.stdout, /--alias <name>/);
+
+  const verify = runNoesis(['help', 'skill', 'verify'], { cwd: workspace, home });
+  assert.match(verify.stdout, /Exits 0 when verification passes/);
+
+  const version = runNoesis(['--version'], { cwd: workspace, home });
+  assert.match(version.stdout.trim(), /^\d+\.\d+\.\d+$/);
+
+  assert.equal(fs.existsSync(path.join(workspace, '.codex')), false);
+  assert.equal(fs.existsSync(path.join(workspace, '.claude')), false);
+});
+
+
 test('add, list, inspect, verify, and remove external skill', (t) => {
   const root = withTempDir(t);
   const home = path.join(root, 'home');
@@ -319,4 +349,143 @@ test('agent-id resolution prefers installed pamem dependency bin', (t) => {
 
   assert.equal(data.target.resolver, 'pamem-status');
   assert.equal(data.target.root, path.resolve(workspace));
+});
+
+
+test('list and inspect report Claude plugin capabilities from settings', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(path.join(workspace, '.claude'), { recursive: true });
+  fs.writeFileSync(
+    path.join(workspace, '.claude', 'settings.json'),
+    `${JSON.stringify({ enabledPlugins: { 'humanize@humania': true } }, null, 2)}\n`,
+  );
+
+  const listing = runNoesis(['skill', 'list', '--json'], { cwd: workspace, home });
+  const listData = JSON.parse(listing.stdout);
+  assert.deepEqual(listData.skills, []);
+  assert.equal(listData.capabilities.length, 1);
+  assert.equal(listData.capabilities[0].name, 'humanize');
+  assert.equal(listData.capabilities[0].type, 'plugin-capability');
+  assert.equal(listData.capabilities[0].status, 'ok');
+  assert.equal(listData.capabilities[0].runtimes.claude.key, 'humanize@humania');
+
+  const inspect = runNoesis(['skill', 'inspect', 'humanize', '--json'], { cwd: workspace, home });
+  const inspectData = JSON.parse(inspect.stdout);
+  assert.equal(inspectData.source.status, 'not-applicable');
+  assert.equal(inspectData.skill, null);
+  assert.equal(inspectData.capability.name, 'humanize');
+  assert.equal(inspectData.capability.status, 'ok');
+
+  const verify = runNoesis(['skill', 'verify', 'humanize', '--json'], { cwd: workspace, home });
+  assert.equal(JSON.parse(verify.stdout).status, 'ok');
+});
+
+
+test('inspect reports pamem runtime capability state', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(path.join(workspace, '.claude'), { recursive: true });
+  fs.mkdirSync(path.join(workspace, '.codex'), { recursive: true });
+  fs.mkdirSync(path.join(workspace, '.pamem'), { recursive: true });
+  fs.mkdirSync(path.join(workspace, 'notes'), { recursive: true });
+  fs.writeFileSync(
+    path.join(workspace, '.claude', 'settings.json'),
+    `${JSON.stringify({ enabledPlugins: { 'pamem@phlens': true } }, null, 2)}\n`,
+  );
+  fs.writeFileSync(path.join(workspace, '.codex', 'config.toml'), '[features]\ncodex_hooks = true\n');
+  fs.writeFileSync(
+    path.join(workspace, '.codex', 'hooks.json'),
+    `${JSON.stringify({
+      hooks: {
+        SessionStart: [
+          {
+            matcher: 'startup|resume',
+            hooks: [
+              { type: 'command', command: '.pamem/scripts/memory-session-start.sh' },
+            ],
+          },
+        ],
+      },
+    }, null, 2)}\n`,
+  );
+  fs.writeFileSync(path.join(workspace, 'MEMORY.md'), '# Memory\n');
+  fs.writeFileSync(path.join(workspace, 'notes', 'current-task.md'), '# Current Task\n');
+  fs.writeFileSync(path.join(workspace, 'notes', 'work-log.md'), '# Work Log\n');
+
+  const inspect = runNoesis(['skill', 'inspect', 'pamem', '--json'], { cwd: workspace, home });
+  const data = JSON.parse(inspect.stdout);
+
+  assert.equal(data.source.status, 'not-applicable');
+  assert.equal(data.capability.name, 'pamem');
+  assert.equal(data.capability.type, 'runtime-capability');
+  assert.equal(data.capability.status, 'ok');
+  assert.equal(data.capability.runtimes.claude.status, 'ok');
+  assert.equal(data.capability.runtimes.codex.status, 'ok');
+  assert.equal(data.capability.runtimes.codex.config.codex_hooks, true);
+  assert.equal(data.capability.runtimes.codex.hooks.session_start, true);
+
+  const verify = runNoesis(['skill', 'verify', 'pamem', '--json'], { cwd: workspace, home });
+  assert.equal(JSON.parse(verify.stdout).status, 'ok');
+});
+
+
+test('pamem runtime is ok for codex-only bootstrap state', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(path.join(workspace, '.codex'), { recursive: true });
+  fs.mkdirSync(path.join(workspace, '.pamem'), { recursive: true });
+  fs.mkdirSync(path.join(workspace, 'notes'), { recursive: true });
+  fs.writeFileSync(path.join(workspace, '.codex', 'config.toml'), '[features]\ncodex_hooks = true\n');
+  fs.writeFileSync(
+    path.join(workspace, '.codex', 'hooks.json'),
+    `${JSON.stringify({
+      hooks: {
+        SessionStart: [
+          {
+            matcher: 'startup|resume',
+            hooks: [
+              { type: 'command', command: '.pamem/scripts/memory-session-start.sh' },
+            ],
+          },
+        ],
+      },
+    }, null, 2)}\n`,
+  );
+  fs.writeFileSync(path.join(workspace, 'MEMORY.md'), '# Memory\n');
+  fs.writeFileSync(path.join(workspace, 'notes', 'current-task.md'), '# Current Task\n');
+  fs.writeFileSync(path.join(workspace, 'notes', 'work-log.md'), '# Work Log\n');
+
+  const inspect = runNoesis(['skill', 'inspect', 'pamem', '--json'], { cwd: workspace, home });
+  const data = JSON.parse(inspect.stdout);
+
+  assert.equal(data.capability.status, 'ok');
+  assert.equal(data.capability.runtime_mode, 'codex');
+  assert.equal(data.capability.runtimes.claude.status, 'missing');
+  assert.equal(data.capability.runtimes.codex.status, 'ok');
+});
+
+
+test('runtime and plugin capabilities are read-only for add and remove', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+
+  const add = runNoesis(['skill', 'add', 'pamem'], { cwd: workspace, home, check: false });
+  assert.equal(add.status, 1);
+  assert.match(add.stderr, /runtime-capability/);
+  assert.match(add.stderr, /not implemented yet/);
+
+  const remove = runNoesis(['skill', 'remove', 'humanize'], { cwd: workspace, home, check: false });
+  assert.equal(remove.status, 1);
+  assert.match(remove.stderr, /plugin-capability/);
+  assert.match(remove.stderr, /read-only status/);
 });

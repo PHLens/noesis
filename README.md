@@ -55,6 +55,8 @@ Implemented:
 - `package.json`: npm package metadata for `@phlens/noesis`
 - `bin/noesis`: Node CLI entrypoint
 - `lib/skill-manager.mjs`: first skill-manager CLI slice for symlink skill visibility
+- command-level help for `noesis`, `noesis skill`, and each skill subcommand
+- read-only plugin/runtime capability status for `humanize`, `superpowers`, and `pamem`
 - `skills/writeback-router/`: classifies durable residue and emits writeback intent
 - `examples/writeback-intent.example.json`: example intent artifact
 - `evals/writeback-routing.jsonl`: golden routing cases
@@ -69,8 +71,8 @@ Not yet implemented:
 - skill proposal lifecycle
 - learning review workflow
 - compression loop
-- plugin capability lifecycle
-- runtime capability lifecycle beyond agent/workspace resolution
+- plugin capability mutation lifecycle
+- runtime capability mutation lifecycle beyond read-only status and agent/workspace resolution
 
 Removed from active Noesis scope:
 
@@ -98,6 +100,7 @@ Noesis is an npm package with a `noesis` bin:
 ```bash
 npm install -g git+ssh://git@github.com/PHLens/noesis.git
 noesis --help
+noesis help skill add
 ```
 
 From a local checkout, use:
@@ -118,6 +121,8 @@ noesis skill remove <name> [--json]
 ```
 
 This first slice manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, refuses non-symlink conflicts, removes only visibility links, and uses `pamem status --agent-id <id> --json` for agent workspace resolution.
+
+`noesis skill list/inspect/verify` also reports read-only capability status for known Claude plugin capabilities (`humanize`, `superpowers`) and the `pamem` runtime capability. `add/remove` for plugin and runtime capabilities are intentionally still blocked until mutation flows are implemented.
 
 `@phlens/pamem` is a package dependency so `--agent-id` can resolve through the installed pamem bin. If the dependency bin is unavailable, the CLI falls back to `pamem` on `PATH`.
 
