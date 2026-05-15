@@ -367,6 +367,34 @@ test('managed repo skill source is preferred over external compatibility source'
 });
 
 
+test('packaged noesis skill manager entry skill installs as a managed source', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+
+  const add = runNoesis(['skill', 'add', 'noesis-skill-manager', '--json'], { cwd: workspace, home });
+  const addData = JSON.parse(add.stdout);
+  const source = path.join(REPO_ROOT, 'skills', 'noesis-skill-manager');
+
+  assert.equal(addData.source.kind, 'managed');
+  assert.equal(addData.source.path, fs.realpathSync(source));
+  assert.equal(addData.skill.status, 'ok');
+  assert.equal(fs.realpathSync(path.join(workspace, '.codex', 'skills', 'noesis-skill-manager')), fs.realpathSync(source));
+  assert.equal(fs.realpathSync(path.join(workspace, '.claude', 'skills', 'noesis-skill-manager')), fs.realpathSync(source));
+
+  const inspect = runNoesis(['skill', 'inspect', 'noesis-skill-manager', '--json'], { cwd: workspace, home });
+  const inspectData = JSON.parse(inspect.stdout);
+  assert.equal(inspectData.source.kind, 'managed');
+  assert.equal(inspectData.source.has_skill_md, true);
+  assert.equal(inspectData.skill.status, 'ok');
+
+  const verify = runNoesis(['skill', 'verify', 'noesis-skill-manager', '--json'], { cwd: workspace, home });
+  assert.equal(JSON.parse(verify.stdout).status, 'ok');
+});
+
+
 test('explicit source can select external when managed source exists', (t) => {
   const root = withTempDir(t);
   const home = path.join(root, 'home');
