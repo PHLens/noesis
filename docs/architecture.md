@@ -132,11 +132,10 @@ Supported target resolution:
 
 - current working directory by default
 - explicit `--workspace <path>`
-- pamem agent home via `--agent-id <id>` and `pamem status --agent-id <id> --json`
-- Claude agent memory via `--agent <name>` and `~/.claude/agents/<name>.md`
+- pamem agent home or workspace via `--agent-id <id>` and `pamem status --agent-id <id> --json`
 - explicit global scope via `--global`
 
-`@phlens/pamem` is an npm dependency of `@phlens/noesis` for this `--agent-id` resolution path. The CLI prefers the installed dependency bin and falls back to `pamem` on `PATH`.
+`@phlens/pamem` is an npm dependency of `@phlens/noesis` for this `--agent-id` resolution path. The CLI prefers the installed dependency bin and falls back to `pamem` on `PATH`. Skill visibility is managed on the resolved pamem `root`; shared `memory_repo` is contextual metadata and is not a skill target.
 
 Supported source resolution:
 

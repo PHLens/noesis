@@ -33,8 +33,8 @@ function makeProjectPamem(t, outputRoot) {
   fs.writeFileSync(
     pamem,
     process.platform === 'win32'
-      ? `@echo off\r\necho {"status":"ok","root":"${outputRoot.replaceAll('\\', '\\\\')}"}\r\n`
-      : `#!/bin/sh\nprintf '%s\\n' '{"status":"ok","root":"${outputRoot}"}'\n`,
+      ? `@echo off\r\necho {"status":"ok","root":"${outputRoot.replaceAll('\\', '\\\\')}","memory_repo":"${path.join(outputRoot, 'memory').replaceAll('\\', '\\\\')}","agent_home":"${outputRoot.replaceAll('\\', '\\\\')}","role":"coder","runtime":"cli"}\r\n`
+      : `#!/bin/sh\nprintf '%s\\n' '{"status":"ok","root":"${outputRoot}","memory_repo":"${path.join(outputRoot, 'memory')}","agent_home":"${outputRoot}","role":"coder","runtime":"cli"}'\n`,
   );
   fs.chmodSync(pamem, 0o755);
   t.after(() => {
@@ -504,59 +504,25 @@ test('agent-id resolution prefers installed pamem dependency bin', (t) => {
 
   assert.equal(data.target.resolver, 'pamem-status');
   assert.equal(data.target.root, path.resolve(workspace));
+  assert.equal(data.target.memory_repo, path.join(workspace, 'memory'));
+  assert.equal(data.target.agent_home, path.resolve(workspace));
+  assert.equal(data.target.role, 'coder');
+  assert.equal(data.target.runtime, 'cli');
 });
 
 
-test('agent name resolves Claude agent memory target', (t) => {
+test('agent name options are not supported; use pamem agent id instead', (t) => {
   const root = withTempDir(t);
   const home = path.join(root, 'home');
-  const workspace = path.join(home, '.slock', 'agents', 'developer-workspace');
-  fs.mkdirSync(path.join(home, '.claude', 'agents'), { recursive: true });
-  fs.mkdirSync(workspace, { recursive: true });
-  fs.writeFileSync(
-    path.join(home, '.claude', 'agents', 'developer.md'),
-    `---
-name: developer
-memory: ~/.slock/agents/developer-workspace/
----
-`,
-  );
+  fs.mkdirSync(home);
 
-  const result = runNoesis(['skill', 'list', '--agent', 'developer', '--json'], {
-    cwd: root,
-    home,
-  });
-  const data = JSON.parse(result.stdout);
+  const agent = runNoesis(['skill', 'list', '--agent', 'developer'], { cwd: root, home, check: false });
+  assert.equal(agent.status, 1);
+  assert.match(agent.stderr, /unknown option: --agent/);
 
-  assert.equal(data.target.resolver, 'claude-agent');
-  assert.equal(data.target.agent_name, 'developer');
-  assert.equal(data.target.root, path.resolve(workspace));
-});
-
-
-test('agent name with user memory resolves legacy Claude agent-memory directory', (t) => {
-  const root = withTempDir(t);
-  const home = path.join(root, 'home');
-  const memory = path.join(home, '.claude', 'agent-memory', 'qa');
-  fs.mkdirSync(path.join(home, '.claude', 'agents'), { recursive: true });
-  fs.mkdirSync(memory, { recursive: true });
-  fs.writeFileSync(
-    path.join(home, '.claude', 'agents', 'qa.md'),
-    `---
-name: qa
-memory: user
----
-`,
-  );
-
-  const result = runNoesis(['skill', 'list', '--agent-name', 'qa', '--json'], {
-    cwd: root,
-    home,
-  });
-  const data = JSON.parse(result.stdout);
-
-  assert.equal(data.target.resolver, 'claude-agent');
-  assert.equal(data.target.root, path.resolve(memory));
+  const agentName = runNoesis(['skill', 'list', '--agent-name', 'developer'], { cwd: root, home, check: false });
+  assert.equal(agentName.status, 1);
+  assert.match(agentName.stderr, /unknown option: --agent-name/);
 });
 
 
