@@ -47,6 +47,8 @@ Noesis decides and records. Downstream systems execute their own changes.
 
 The current CLI slice is the npm `noesis` bin and manages symlink-based skills exposed through `.codex/skills/` and `.claude/skills/`. Managed sources live under this package's `skills/`; `~/skills` remains an external compatibility source.
 
+The `noesis-skill-manager` managed skill is the runtime-facing entrypoint for this module. It stays thin and delegates behavior to the `noesis skill` CLI.
+
 `Noesis` owns learning control:
 
 - recognizing learning events
