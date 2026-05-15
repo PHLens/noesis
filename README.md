@@ -54,9 +54,10 @@ Implemented:
 
 - `package.json`: npm package metadata for `@phlens/noesis`
 - `bin/noesis`: Node CLI entrypoint
-- `lib/skill-manager.mjs`: first skill-manager CLI slice for symlink skill visibility
+- `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
-- read-only plugin/runtime capability status for `humanize`, `superpowers`, and `pamem`
+- plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
+- managed skill sources for `code-review`, `doc-review`, `shared-devflow`, and `writeback-router`
 - `skills/writeback-router/`: classifies durable residue and emits writeback intent
 - `examples/writeback-intent.example.json`: example intent artifact
 - `evals/writeback-routing.jsonl`: golden routing cases
@@ -71,8 +72,6 @@ Not yet implemented:
 - skill proposal lifecycle
 - learning review workflow
 - compression loop
-- plugin capability mutation lifecycle
-- runtime capability mutation lifecycle beyond read-only status and agent/workspace resolution
 
 Removed from active Noesis scope:
 
@@ -116,13 +115,15 @@ The first implemented command family is the skill manager:
 noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
 noesis skill inspect <name> [--source <path>] [--json]
 noesis skill verify [name] [--json]
-noesis skill add <name> [--source <path>] [--alias <alias>] [--json]
-noesis skill remove <name> [--json]
+noesis skill add <name> [--source <path>] [--alias <alias>] [--runtime codex|claude|both] [--json]
+noesis skill remove <name> [--runtime codex|claude|both] [--json]
 ```
 
-This first slice manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, refuses non-symlink conflicts, removes only visibility links, and uses `pamem status --agent-id <id> --json` for agent workspace resolution.
+The skill manager manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, repairs mismatched symlinks, refuses non-symlink conflicts, and removes only visibility links.
 
-`noesis skill list/inspect/verify` also reports read-only capability status for known Claude plugin capabilities (`humanize`, `superpowers`) and the `pamem` runtime capability. `add/remove` for plugin and runtime capabilities are intentionally still blocked until mutation flows are implemented.
+Target resolution supports the current directory, explicit `--workspace`, pamem `--agent-id` via `pamem status --agent-id <id> --json`, and explicit `--global`. For pamem agents, skill visibility is managed on the resolved `root`; the shared `memory_repo` is reported for context but is not used as a `.codex/skills` or `.claude/skills` target.
+
+Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and disabled through the official Claude plugin CLI when available, with `.claude/settings.json` fallback for environments without `claude`. The `pamem` runtime capability can be enabled or removed for Claude plugin runtime, Codex bootstrap, or both with `--runtime`; Codex bootstrap delegates to the installed pamem CLI. `memory-lint`, `memory-rule`, and `sync-request` are provided by `pamem` and are not managed as standalone symlink skills.
 
 `@phlens/pamem` is a package dependency so `--agent-id` can resolve through the installed pamem bin. If the dependency bin is unavailable, the CLI falls back to `pamem` on `PATH`.
 

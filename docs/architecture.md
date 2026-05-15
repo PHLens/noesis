@@ -132,10 +132,10 @@ Supported target resolution:
 
 - current working directory by default
 - explicit `--workspace <path>`
-- pamem agent home via `--agent-id <id>` and `pamem status --agent-id <id> --json`
+- pamem agent home or workspace via `--agent-id <id>` and `pamem status --agent-id <id> --json`
 - explicit global scope via `--global`
 
-`@phlens/pamem` is an npm dependency of `@phlens/noesis` for this `--agent-id` resolution path. The CLI prefers the installed dependency bin and falls back to `pamem` on `PATH`.
+`@phlens/pamem` is an npm dependency of `@phlens/noesis` for this `--agent-id` resolution path. The CLI prefers the installed dependency bin and falls back to `pamem` on `PATH`. Skill visibility is managed on the resolved pamem `root`; shared `memory_repo` is contextual metadata and is not a skill target.
 
 Supported source resolution:
 
@@ -143,14 +143,15 @@ Supported source resolution:
 - external compatibility source under `~/skills`
 - explicit `--source <path>` under either supported root
 
-Current read-only capability status support:
+Supported capability operations:
 
+- symlink skills: `list`, `inspect`, `verify`, `add`, and `remove`
 - Claude plugin capabilities: `humanize`, `superpowers`
 - runtime capability: `pamem`
 
-Read-only `list`, `inspect`, and `verify` report those capabilities from `.claude/settings.json` and Codex pamem bootstrap files. Mutating plugin/runtime capabilities remains a future step; `add/remove` currently reject those names instead of making partial or hidden changes.
+Claude plugin capabilities are enabled and disabled through the official Claude plugin CLI when available, with `.claude/settings.json` fallback for environments without `claude`. `pamem` runtime mutation supports `--runtime claude`, `--runtime codex`, or `--runtime both`; Claude runtime uses the same plugin flow, and Codex bootstrap/removal delegates to the installed `pamem` CLI. `memory-lint`, `memory-rule`, and `sync-request` stay owned by `pamem` and are rejected as standalone symlink skills.
 
-Future skill-manager work should add plugin capability mutation support, runtime capability mutation support, and approved skill proposal application without moving memory governance into Noesis.
+Future skill-manager work should add approved skill proposal application without moving memory governance into Noesis.
 
 ## Non-Goals
 
