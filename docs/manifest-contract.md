@@ -73,8 +73,9 @@ Shared fields:
 | `init_command` | no | Initialization command contract |
 | `validate_command` | no | Read-only validation command contract |
 
-Noesis may call declared commands during `init` or `doctor`, but the downstream
-owner defines the command semantics.
+Noesis may call declared read-only commands during `doctor`, but the downstream
+owner defines the command semantics. Calling declared `init_command` values is a
+future extension and must remain explicit.
 
 ### `[paths]`
 
@@ -151,6 +152,8 @@ It may check:
 - component config paths exist when enabled;
 - declared CLIs are discoverable;
 - declared status/validate commands return success;
+- declared status/validate commands emit a JSON envelope with `status: "ok"`
+  or `ok: true` for a passing component check;
 - required entry skills are visible;
 - Noesis local state directories exist or can be reported missing.
 
@@ -164,17 +167,18 @@ It must not:
 
 ## Init Semantics
 
-`noesis init` may create Noesis-owned local state and delegate downstream setup.
+`noesis init` creates Noesis-owned local state. Delegating downstream setup is a
+future extension and must remain explicit.
 
 Allowed:
 
 - create `.noesis/config.toml`;
 - create `.noesis/promote-requests/`, `.noesis/proposals/`, and `.noesis/reports/`;
-- call downstream owner init commands when requested with `--with`;
 - run read-only doctor checks after initialization.
 
 Requires explicit flags or review:
 
+- calling downstream owner init commands;
 - installing missing CLIs;
 - enabling runtime capabilities;
 - adding skills;

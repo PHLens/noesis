@@ -54,6 +54,7 @@ Implemented:
 
 - `package.json`: npm package metadata for `@phlens/noesis`
 - `bin/noesis`: Node CLI entrypoint
+- `noesis init`, `noesis doctor`, and `noesis config show` for conservative Noesis-owned bootstrap state
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
@@ -132,15 +133,26 @@ npm install -g .
 noesis --help
 ```
 
-The first implemented command family is the skill manager:
+The first implemented command families are bootstrap and skill management:
 
 ```bash
+noesis init [--workspace <path>] [--with pamem,loreforge|none] [--force] [--json]
+noesis doctor [--workspace <path>] [--json]
+noesis config show [--workspace <path>] [--json]
 noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
 noesis skill inspect <name> [--source <path>] [--json]
 noesis skill verify [name] [--json]
 noesis skill add <name> [--source <path>] [--alias <alias>] [--runtime codex|claude|both] [--json]
 noesis skill remove <name> [--runtime codex|claude|both] [--json]
 ```
+
+The bootstrap commands are intentionally conservative:
+
+- `init` creates `.noesis/config.toml` and Noesis-owned local state directories;
+- `doctor` is read-only, reports missing downstream readiness as warnings unless the manifest itself is invalid, and can consume JSON from declared `status_command` / `validate_command`;
+- `config show` prints the raw or parsed manifest.
+
+They do not create pamem memory, initialize LoreForge wiki content, run sync, or apply skill changes.
 
 The skill manager manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, repairs mismatched symlinks, refuses non-symlink conflicts, and removes only visibility links.
 
