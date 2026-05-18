@@ -1,6 +1,6 @@
 # Example Noesis manifest.
-# This file is a control-plane manifest, not a replacement for pamem or
-# LoreForge owner configs.
+# This file is a control-plane manifest. pamem and LoreForge owner configs
+# remain authoritative for their systems.
 
 [noesis]
 schema_version = "0.1"

@@ -1,13 +1,15 @@
 # Noesis
 
-Noesis is the learning control plane for an agent heuristic system.
+Noesis coordinates reviewable heuristic updates for agents.
 
-It does not store memory, own a wiki, or directly install capabilities. It coordinates how an agent turns feedback and task residue into auditable learning artifacts that can be reviewed, tested, and handed off to the right subsystem.
+It records routing decisions, proposal state, and checks for changes that belong
+to memory, wiki knowledge, skills, or evals. Storage and application remain with
+the owning subsystem.
 
 ## System Position
 
 ```text
-Noesis System = heuristic system for agent self-improvement
+Noesis System = reviewable heuristic update workflow
 
 pamem         = memory layer: preferences, workflow rules, corrections, meta-knowledge
 LoreForge     = knowledge layer: source-backed notes, cards, MOCs, domain knowledge
@@ -17,7 +19,7 @@ Noesis        = control plane: detect, route, propose, review, evaluate, compres
 skill-manager = capability lifecycle tool used by Noesis after approval
 ```
 
-Noesis is not a third storage system. It records and evaluates learning decisions.
+Noesis records and evaluates decisions about heuristic updates.
 
 ## Core Responsibilities
 
@@ -27,8 +29,8 @@ Noesis owns:
 - routing decisions for memory, knowledge, skills, evals, compression, or discard
 - writeback intent schema and routing vocabulary
 - proposal lifecycle for reviewable memory/wiki/skill/eval changes
-- routing evals and future learning-loop quality gates
-- coordination policy: what may be automatic, what requires review, and what is forbidden
+- routing evals and learning-loop quality gates
+- coordination policy for automation boundaries and required review
 
 Noesis may coordinate:
 
@@ -38,14 +40,14 @@ Noesis may coordinate:
 - eval case proposals
 - compression proposals for stale or repetitive learning artifacts
 
-Noesis must not:
+Out of scope for Noesis:
 
-- write stable pamem memory directly
-- stage or promote LoreForge wiki notes directly
-- install, enable, or update skills without approval
-- own memory repo structure or wiki structure
-- run private sync backends
-- save full transcripts by default
+- stable pamem memory writes
+- direct LoreForge wiki staging or promotion
+- skill installation, enabling, or update without approval
+- memory repo or wiki structure ownership
+- private sync backend execution
+- full transcript retention by default
 - bypass review for high-impact behavior changes
 
 ## Current Implementation
@@ -75,7 +77,7 @@ Not yet implemented:
 - learning review workflow
 - compression loop
 
-Removed from active Noesis scope:
+Owned by other systems:
 
 - memory lint is owned by `pamem`
 - wiki ingest mechanics are owned by `LoreForge`
@@ -92,18 +94,22 @@ task / conversation
   -> repeated artifacts are compressed into stable memory, wiki cards, skills, or evals
 ```
 
-The safe default is autonomous proposal, not autonomous application.
+The default automation boundary is proposal generation. Stable application stays
+with the owning subsystem and requires review where configured.
 
 ## Entry Skill Workflow
 
-Daily use should stay entry-skill driven:
+Runtime use is entry-skill driven:
 
 - `pamem` entry skill handles memory loading, memory governance, memory lint, and memory update requests.
 - `LoreForge` entry skill handles wiki/source-backed knowledge staging and promotion.
 - Noesis `writeback-router` classifies durable residue and emits intent artifacts.
 - Noesis `noesis-skill-manager` delegates skill visibility and capability lifecycle work to `noesis skill ...`.
 
-When a user explicitly asks to promote or gate a repeated pattern, Noesis should create local promote-request state, route and gate it, and emit reviewable proposal artifacts. It should not apply stable memory, wiki, or skill changes directly.
+When a user explicitly asks to promote or gate a repeated pattern, Noesis
+creates local promote-request state, routes and gates it, and emits reviewable
+proposal artifacts. Stable memory, wiki, and skill changes are applied by their
+owning systems after approval.
 
 See `docs/entry-skill-workflow.md`.
 
@@ -111,8 +117,8 @@ See `docs/entry-skill-workflow.md`.
 
 Noesis may create a local `.noesis/config.toml` manifest for component
 orchestration. The manifest stores component pointers, required entry skills,
-version constraints, and Noesis-owned local state paths. It does not replace
-`.pamem/config.toml` or `.loreforge/config.toml`.
+version constraints, and Noesis-owned local state paths. `.pamem/config.toml`
+and `.loreforge/config.toml` remain authoritative for their systems.
 
 See `docs/manifest-contract.md` and `examples/noesis-config.example.toml`.
 
@@ -152,7 +158,8 @@ The bootstrap commands are intentionally conservative:
 - `doctor` is read-only, reports missing downstream readiness as warnings unless the manifest itself is invalid, and can consume JSON from declared `status_command` / `validate_command`;
 - `config show` prints the raw or parsed manifest.
 
-They do not create pamem memory, initialize LoreForge wiki content, run sync, or apply skill changes.
+They create Noesis-owned bootstrap state only. pamem memory, LoreForge wiki
+content, sync, and skill changes remain outside this command surface.
 
 The skill manager manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, repairs mismatched symlinks, refuses non-symlink conflicts, and removes only visibility links.
 
@@ -170,7 +177,7 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `bin/noesis`: Node CLI entrypoint
 - `lib/skill-manager.mjs`: symlink skill visibility manager
 - `docs/architecture.md`: current system boundary
-- `docs/entry-skill-workflow.md`: daily entry-skill and first promote/gate workflow
+- `docs/entry-skill-workflow.md`: entry-skill and first promote/gate workflow
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
 - `docs/manifest-contract.md`: `.noesis/config.toml` and component contract
 - `examples/noesis-config.example.toml`: example Noesis bootstrap manifest
@@ -187,4 +194,4 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 
 ## Tagline
 
-Noesis: a learning control plane for auditable agent self-improvement.
+Noesis: a control plane for reviewable agent heuristic updates.

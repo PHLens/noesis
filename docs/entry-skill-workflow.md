@@ -1,14 +1,14 @@
 # Entry Skill Workflow
 
-This document defines the first concrete daily-use workflow for Noesis after
-the system boundary was narrowed to router plus skill manager.
+This document defines the first concrete entry-skill workflow for Noesis after
+the system boundary was narrowed to routing plus skill management.
 
-The goal is to make promotion explicit and reviewable without turning Noesis
-into a memory store, wiki engine, or autonomous self-modifying runtime.
+The goal is an explicit, reviewable promotion path for candidate heuristic
+updates. Storage and application stay with the owning subsystem.
 
 ## Runtime Entry Points
 
-The daily runtime surface should stay small:
+The runtime surface stays small:
 
 | Entry point | Owner | Purpose | Direct writes |
 |---|---|---|---|
@@ -17,24 +17,24 @@ The daily runtime surface should stay small:
 | writeback-router skill | Noesis | classify durable residue and emit writeback intent artifacts | no |
 | noesis-skill-manager skill | Noesis | inspect, verify, add, or remove skills/capabilities through `noesis skill ...` | approved skill visibility only |
 
-Noesis may package thin entry skills that point an agent to the right owner.
-It must not reimplement pamem memory governance or LoreForge wiki mechanics.
+Noesis may package thin entry skills that route work to the owning subsystem.
+pamem keeps memory governance, and LoreForge keeps wiki mechanics.
 
 ## Normal Task Flow
 
-Ordinary task completion should not trigger broad self-modification.
+Ordinary task completion only creates promotion work when there is durable
+learning residue.
 
 ```text
 task finishes
-  -> agent identifies candidate learning residue
-  -> transient chatter is discarded
+  -> agent identifies candidate durable residue
+  -> transient task detail is discarded
   -> obvious runtime memory is handled by pamem rules
   -> source-backed domain knowledge is handed to LoreForge
   -> repeated procedures or missing capabilities become Noesis candidates
 ```
 
-Use the writeback router only when there is meaningful durable residue. Do not
-run it for every ordinary dialogue turn.
+Use the writeback router when there is meaningful durable residue.
 
 ## Explicit Promote Flow
 
@@ -51,12 +51,12 @@ explicit promote request
   -> Noesis records outcome and eval signal
 ```
 
-The safe default is proposal-only. The first implementation should not apply
-stable memory updates, wiki promotions, or skill changes directly.
+The first implementation emits proposals only. Stable memory updates, wiki
+promotions, and skill changes are applied by their owning systems after review.
 
 ## Promote Request Artifact
 
-The promote request is local state, not durable memory.
+The promote request is local Noesis state.
 
 Recommended path:
 
@@ -110,13 +110,13 @@ Requires review:
 - high-impact workflow rules
 - superseding existing memory, knowledge, or skill behavior
 
-Forbidden by default:
+Disallowed by default:
 
-- saving full transcripts as learning artifacts
+- full transcript retention as a learning artifact
 - hidden memory, wiki, or skill mutation
-- direct sync executor behavior inside Noesis
-- unreviewed self-modification
-- promoting private or source-unsafe content
+- sync executor behavior inside Noesis
+- unreviewed behavior changes
+- promotion of private or source-unsafe content
 
 ## First Implementation Slice
 
@@ -129,8 +129,7 @@ The first code slice should be small:
 5. run existing routing evals and skill-manager verification;
 6. never apply downstream changes.
 
-This can be implemented before the full learning-event and proposal queue
-schemas are finalized.
+This slice can ship before the full learning-event and proposal queue schemas.
 
 ## Relationship To Existing CLI
 
@@ -153,8 +152,7 @@ noesis doctor --workspace <path>
 noesis config show --workspace <path>
 ```
 
-The first promote/gate command should be additive. A future command shape could
-be:
+The first promote/gate command should be additive. Candidate command shape:
 
 ```bash
 noesis promote check .noesis/promote-requests/<id>.json
@@ -166,9 +164,9 @@ noesis promote plan .noesis/promote-requests/<id>.json --out .noesis/proposals/
 ## Open Design Questions
 
 - Should promote-request become the final learning-event schema, or remain a
-  user-facing wrapper around learning events?
-- Should proposal artifacts live under `.noesis/proposals/` or be delegated to
-  downstream owner staging directories immediately?
+  wrapper around learning events?
+- Should proposal artifacts live under `.noesis/proposals/`, or should Noesis
+  delegate immediately to downstream owner staging directories?
 - Which evals should gate skill proposals before `noesis skill add` is allowed?
 - How should approved downstream application outcomes be recorded without
   making Noesis a third storage system?

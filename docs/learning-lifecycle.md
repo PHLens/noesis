@@ -30,19 +30,19 @@ Examples:
 - source-backed domain insight
 - stale or conflicting prior learning
 
-Noesis should not store full transcripts by default. A learning event should carry short summaries and source references.
+Learning events carry short summaries and source references. Full transcripts
+stay outside the default learning record.
 
 ## Explicit Promote Request
 
-The first daily-use interface may be a promote request rather than a fully
-general learning event.
+The first user-facing interface may be a promote request.
 
 Use it when a user explicitly asks to promote, gate, learn, or turn a repeated
 pattern into a durable artifact. A promote request is local state that points at
 candidate learning residue and asks Noesis to route and gate it.
 
-It should produce reviewable proposals only. Stable application remains owned
-by pamem, LoreForge, skill-manager, or eval tooling.
+It produces reviewable proposals. Stable application remains owned by pamem,
+LoreForge, skill-manager, or eval tooling.
 
 ## Routing
 
@@ -64,7 +64,7 @@ Mixed events should be split when possible.
 
 ## Proposal Queue
 
-Noesis should generate proposals rather than directly applying changes.
+Noesis generates proposals before downstream systems apply changes.
 
 Common proposal fields:
 
@@ -105,11 +105,12 @@ Minimum fields:
 - rollback plan
 - review status
 
-The first safe target is autonomous skill proposal, not autonomous skill installation.
+The first automation target is skill proposal generation. Skill installation
+requires approval.
 
 ## Review Workflow
 
-Noesis review should aggregate proposal state without taking ownership from downstream systems:
+Noesis review aggregates proposal state while downstream systems keep ownership:
 
 - memory proposals pending pamem review
 - wiki proposals pending LoreForge review
@@ -130,11 +131,11 @@ Examples:
 - many failures become one eval case
 - stale proposals become rejected or superseded
 
-Without compression, the system only accumulates history instead of improving behavior.
+Compression converts accumulated history into maintained artifacts.
 
 ## Evaluation
 
-Evaluation prevents self-improvement from becoming drift.
+Evaluation limits behavior drift.
 
 Noesis already has routing evals. Future gates should include:
 
@@ -161,8 +162,8 @@ Requires approval:
 - install or enable skills
 - supersede high-priority rules
 
-Forbidden by default:
+Disallowed by default:
 
-- unreviewed self-modification
+- unreviewed behavior changes
 - hidden transcript retention
 - direct writes into downstream owners from Noesis

@@ -1,10 +1,9 @@
 # Noesis Manifest And Component Contract
 
-This document defines the P0 bootstrap contract for an independent Noesis
-development path.
+This document defines the P0 bootstrap contract for Noesis.
 
-Noesis may orchestrate pamem and LoreForge, but it must not absorb their
-configuration, storage, or execution responsibilities.
+Noesis orchestrates component checks and local proposal state. Component
+configuration, storage, and execution stay with the owning system.
 
 ## Directory Layout
 
@@ -27,7 +26,7 @@ Downstream systems keep their own config:
 
 The `.noesis/config.toml` file is a manifest. It records component pointers,
 required capabilities, version constraints, and Noesis-owned local state paths.
-It is not a replacement for downstream owner configs.
+Downstream owner configs remain authoritative for their systems.
 
 ## Manifest Schema
 
@@ -73,9 +72,9 @@ Shared fields:
 | `init_command` | no | Initialization command contract |
 | `validate_command` | no | Read-only validation command contract |
 
-Noesis may call declared read-only commands during `doctor`, but the downstream
+Noesis may call declared read-only commands during `doctor`. The downstream
 owner defines the command semantics. Calling declared `init_command` values is a
-future extension and must remain explicit.
+future extension and requires an explicit command or flag.
 
 ### `[paths]`
 
@@ -98,12 +97,12 @@ Noesis may expect:
 - `pamem lint` where available;
 - pamem entry skill visibility when runtime integration is enabled.
 
-Noesis must not:
+Out of scope for Noesis:
 
-- write stable memory directly;
-- rewrite `.pamem/config.toml` except through pamem-owned commands;
-- run private sync backends;
-- manage pamem memory repo layout.
+- direct stable memory writes;
+- `.pamem/config.toml` rewrites outside pamem-owned commands;
+- private sync backend execution;
+- pamem memory repo layout management.
 
 ### LoreForge
 
@@ -116,16 +115,16 @@ Noesis may expect:
 - validation command for wiki structure and staged content;
 - LoreForge entry skill visibility when wiki workflows are enabled.
 
-The exact command names are intentionally left to the LoreForge owner contract.
-Noesis should treat them as declared component commands, not hard-code internal
-wiki mechanics.
+The exact command names are left to the LoreForge owner contract. Noesis
+consumes the declared component commands from the manifest and leaves wiki
+mechanics to LoreForge.
 
-Noesis must not:
+Out of scope for Noesis:
 
-- stage or promote wiki notes directly;
-- own wiki directory structure;
-- run wiki sync backends;
-- infer domain paths without LoreForge rules.
+- direct wiki staging or promotion;
+- wiki directory ownership;
+- wiki sync backend execution;
+- domain-path inference without LoreForge rules.
 
 ### skill-manager
 
@@ -157,18 +156,18 @@ It may check:
 - required entry skills are visible;
 - Noesis local state directories exist or can be reported missing.
 
-It must not:
+It leaves unchanged:
 
-- create missing owner configs;
-- mutate memory/wiki/skill state;
-- install capabilities;
-- run sync;
-- apply proposals.
+- owner configs;
+- memory, wiki, and skill state;
+- installed capabilities;
+- sync state;
+- proposal application state.
 
 ## Init Semantics
 
 `noesis init` creates Noesis-owned local state. Delegating downstream setup is a
-future extension and must remain explicit.
+future extension and requires an explicit command or flag.
 
 Allowed:
 
@@ -184,12 +183,12 @@ Requires explicit flags or review:
 - adding skills;
 - overwriting existing config files.
 
-Forbidden:
+Out of scope:
 
-- writing stable pamem memory;
-- staging/promoting LoreForge wiki content;
-- applying skill changes without approval;
-- storing credentials or private sync tokens in `.noesis/config.toml`.
+- stable pamem memory writes;
+- LoreForge wiki staging or promotion;
+- skill changes without approval;
+- credentials or private sync tokens in `.noesis/config.toml`.
 
 ## Failure Handling
 
@@ -211,5 +210,5 @@ Use three independent version axes:
 - downstream component CLI versions;
 - downstream component config schema versions.
 
-Noesis should reject unsupported manifest versions and warn on unsupported
-component versions. It should not migrate downstream owner configs directly.
+Noesis rejects unsupported manifest versions and warns on unsupported component
+versions. Downstream owner config migration belongs to the owning system.
