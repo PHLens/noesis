@@ -11,16 +11,18 @@ the owning subsystem.
 ```text
 Noesis System = reviewable heuristic update workflow
 
-[pamem]       = memory layer: preferences, workflow rules, corrections, meta-knowledge
-[LoreForge]   = knowledge layer: source-backed notes, cards, MOCs, domain knowledge
+pamem         = memory layer: preferences, workflow rules, corrections, meta-knowledge
+LoreForge     = knowledge layer: source-backed notes, cards, MOCs, domain knowledge
 skills        = capability layer: executable procedures and reusable agent behavior
 evals         = regression layer: routing, workflow, and skill quality gates
 Noesis        = control plane: detect, route, propose, review, evaluate, compress
 skill-manager = capability lifecycle tool used by Noesis after approval
 ```
 
-[pamem]: https://github.com/PHLens/pamem
-[LoreForge]: https://github.com/PHLens/LoreForge
+Related repositories:
+
+- [pamem](https://github.com/PHLens/pamem)
+- [LoreForge](https://github.com/PHLens/LoreForge)
 
 Noesis records and evaluates decisions about heuristic updates.
 
