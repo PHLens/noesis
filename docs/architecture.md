@@ -55,8 +55,28 @@ The `noesis-skill-manager` managed skill is the runtime-facing entrypoint for th
 - routing events to memory, wiki, skill, eval, compression, or discard
 - creating reviewable proposals
 - coordinating review and eval gates
+- managing Noesis-owned local control-plane state under `.noesis/`
 - recording rationale, provenance, and outcome
 - keeping the system from learning unsafe or unreviewed behavior
+
+## Bootstrap Contract
+
+Noesis may own a local bootstrap manifest:
+
+```text
+.noesis/config.toml
+```
+
+The manifest records component pointers and Noesis-owned local state paths. It
+does not replace owner configs:
+
+```text
+.pamem/config.toml
+.loreforge/config.toml
+```
+
+The detailed manifest and component contract is in
+`docs/manifest-contract.md`.
 
 ## Learning Artifacts
 

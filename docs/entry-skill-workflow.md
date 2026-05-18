@@ -144,6 +144,15 @@ noesis skill add <name>
 noesis skill remove <name>
 ```
 
+The bootstrap command surface should use the manifest contract in
+`docs/manifest-contract.md`:
+
+```bash
+noesis init --workspace <path> --with pamem,loreforge
+noesis doctor --workspace <path>
+noesis config show --workspace <path>
+```
+
 The first promote/gate command should be additive. A future command shape could
 be:
 

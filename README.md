@@ -106,6 +106,15 @@ When a user explicitly asks to promote or gate a repeated pattern, Noesis should
 
 See `docs/entry-skill-workflow.md`.
 
+## Bootstrap Manifest
+
+Noesis may create a local `.noesis/config.toml` manifest for component
+orchestration. The manifest stores component pointers, required entry skills,
+version constraints, and Noesis-owned local state paths. It does not replace
+`.pamem/config.toml` or `.loreforge/config.toml`.
+
+See `docs/manifest-contract.md` and `examples/noesis-config.example.toml`.
+
 ## Install And CLI
 
 Noesis is an npm package with a `noesis` bin:
@@ -151,6 +160,8 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `docs/architecture.md`: current system boundary
 - `docs/entry-skill-workflow.md`: daily entry-skill and first promote/gate workflow
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
+- `docs/manifest-contract.md`: `.noesis/config.toml` and component contract
+- `examples/noesis-config.example.toml`: example Noesis bootstrap manifest
 - `findings.md`: accepted decisions and design findings
 - `task_plan.md`: current work tracker
 - `progress.md`: current progress and next steps

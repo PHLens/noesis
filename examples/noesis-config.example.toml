@@ -1,0 +1,45 @@
+# Example Noesis manifest.
+# This file is a control-plane manifest, not a replacement for pamem or
+# LoreForge owner configs.
+
+[noesis]
+schema_version = "0.1"
+workspace = "${workspace}"
+entry_skill = "writeback-router"
+minimum_noesis_version = "0.1.0"
+mode = "workspace"
+
+[components.pamem]
+enabled = true
+owner = "pamem"
+config_path = ".pamem/config.toml"
+required_cli = "pamem"
+required_version = "0.1.0"
+required_entry_skill = "pamem"
+init_command = "pamem init --workspace ${workspace}"
+status_command = "pamem status --workspace ${workspace} --json"
+validate_command = "pamem lint --workspace ${workspace} --json"
+
+[components.loreforge]
+enabled = true
+owner = "LoreForge"
+config_path = ".loreforge/config.toml"
+required_cli = "loreforge"
+required_version = "0.1.0"
+required_entry_skill = "loreforge"
+init_command = "loreforge init --workspace ${workspace}"
+status_command = "loreforge status --workspace ${workspace} --json"
+validate_command = "loreforge validate --workspace ${workspace} --json"
+
+[components.skill_manager]
+enabled = true
+owner = "Noesis"
+required_cli = "noesis"
+required_entry_skill = "noesis-skill-manager"
+status_command = "noesis skill list --workspace ${workspace} --json"
+validate_command = "noesis skill verify --workspace ${workspace} --json"
+
+[paths]
+promote_requests = ".noesis/promote-requests"
+proposals = ".noesis/proposals"
+reports = ".noesis/reports"
