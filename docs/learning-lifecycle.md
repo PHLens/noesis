@@ -32,6 +32,18 @@ Examples:
 
 Noesis should not store full transcripts by default. A learning event should carry short summaries and source references.
 
+## Explicit Promote Request
+
+The first daily-use interface may be a promote request rather than a fully
+general learning event.
+
+Use it when a user explicitly asks to promote, gate, learn, or turn a repeated
+pattern into a durable artifact. A promote request is local state that points at
+candidate learning residue and asks Noesis to route and gate it.
+
+It should produce reviewable proposals only. Stable application remains owned
+by pamem, LoreForge, skill-manager, or eval tooling.
+
 ## Routing
 
 Routes should prefer the owner that can maintain the artifact long term:

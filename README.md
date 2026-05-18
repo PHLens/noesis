@@ -70,6 +70,7 @@ Not yet implemented:
 - learning event schema
 - proposal queue
 - skill proposal lifecycle
+- entry-skill promote/gate command surface
 - learning review workflow
 - compression loop
 
@@ -91,6 +92,19 @@ task / conversation
 ```
 
 The safe default is autonomous proposal, not autonomous application.
+
+## Entry Skill Workflow
+
+Daily use should stay entry-skill driven:
+
+- `pamem` entry skill handles memory loading, memory governance, memory lint, and memory update requests.
+- `LoreForge` entry skill handles wiki/source-backed knowledge staging and promotion.
+- Noesis `writeback-router` classifies durable residue and emits intent artifacts.
+- Noesis `noesis-skill-manager` delegates skill visibility and capability lifecycle work to `noesis skill ...`.
+
+When a user explicitly asks to promote or gate a repeated pattern, Noesis should create local promote-request state, route and gate it, and emit reviewable proposal artifacts. It should not apply stable memory, wiki, or skill changes directly.
+
+See `docs/entry-skill-workflow.md`.
 
 ## Install And CLI
 
@@ -135,6 +149,7 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `bin/noesis`: Node CLI entrypoint
 - `lib/skill-manager.mjs`: symlink skill visibility manager
 - `docs/architecture.md`: current system boundary
+- `docs/entry-skill-workflow.md`: daily entry-skill and first promote/gate workflow
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
 - `findings.md`: accepted decisions and design findings
 - `task_plan.md`: current work tracker

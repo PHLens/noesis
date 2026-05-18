@@ -63,6 +63,7 @@ The `noesis-skill-manager` managed skill is the runtime-facing entrypoint for th
 Noesis should eventually manage these artifact families:
 
 - `learning-event`: a signal that something may be worth learning
+- `promote-request`: explicit local request to route and gate candidate learning residue
 - `writeback-intent`: current routing artifact for pamem/LoreForge destinations
 - `memory-proposal`: request for pamem-owned memory update
 - `wiki-proposal`: request for LoreForge-owned wiki staging
@@ -71,6 +72,11 @@ Noesis should eventually manage these artifact families:
 - `compression-proposal`: request to consolidate repeated or stale artifacts
 
 The current implementation only covers `writeback-intent` and routing evals.
+
+The first promote/gate design slice is documented in
+`docs/entry-skill-workflow.md`. It keeps entry skills thin: pamem handles
+memory, LoreForge handles wiki knowledge, Noesis routes and gates candidate
+learning residue, and skill-manager executes only approved capability changes.
 
 ## Review And Automation Policy
 
