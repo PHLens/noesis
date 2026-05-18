@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Docomposer"
+  short_description: "Turn large goals into weekly and daily note plans"
+  default_prompt: "Use $plan-docomposer to decompose my long-term goal into weekly and daily Obsidian notes."
