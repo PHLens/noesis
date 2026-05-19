@@ -11,6 +11,7 @@
     "skills/",
     "evals/run-writeback-routing-evals.py",
     "evals/writeback-routing.jsonl",
+    "examples/learning-event.example.json",
     "examples/noesis-config.example.toml",
     "examples/promote-request.example.json",
     "examples/writeback-intent.example.json",

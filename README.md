@@ -62,6 +62,7 @@ Implemented:
 - `package.json`: npm package metadata for `@phlens/noesis`
 - `bin/noesis`: Node CLI entrypoint
 - `noesis init`, `noesis doctor`, and `noesis config show` for conservative Noesis-owned bootstrap state
+- `noesis event check` for read-only learning-event intake validation
 - `noesis promote check` and `noesis promote plan` for checked, proposal-only promote flow
 - `noesis proposal list`, `noesis proposal show`, and `noesis proposal update` for proposal queue review metadata
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
@@ -77,7 +78,7 @@ Implemented:
 
 Not yet implemented:
 
-- learning event schema
+- learning event to promote-request bridge
 - skill proposal lifecycle
 - learning review workflow
 - compression loop
@@ -150,6 +151,7 @@ The first implemented command families are bootstrap and skill management:
 noesis init [--workspace <path>] [--with pamem,loreforge|none] [--force] [--json]
 noesis doctor [--workspace <path>] [--json]
 noesis config show [--workspace <path>] [--json]
+noesis event check .noesis/events/<id>.json [--json]
 noesis promote check .noesis/promote-requests/<id>.json [--json]
 noesis promote plan .noesis/promote-requests/<id>.json [--out .noesis/proposals] [--json]
 noesis proposal list [--workspace <path>] [--dir .noesis/proposals] [--json]
@@ -172,6 +174,13 @@ They create Noesis-owned bootstrap state only. pamem memory, LoreForge wiki
 content, sync, and skill changes remain outside this command surface.
 Generated manifests enable pamem by default. LoreForge is enabled when the
 `loreforge` CLI is discoverable; otherwise it remains declared but disabled.
+
+`noesis event check` is a read-only gate for a learning-event JSON artifact. It
+validates schema, compact source references, case shape, impact metadata,
+optional routing hints, and transcript-retention hazards. It does not route,
+write promote requests, write proposal artifacts, apply owner changes, mutate
+memory, stage wiki content, or change skills. See
+`docs/learning-event-schema.md` and `examples/learning-event.example.json`.
 
 `noesis promote check` is a read-only gate for a promote-request JSON artifact.
 It validates schema, short source references, target surface, risk/review
@@ -207,15 +216,18 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `package.json`: npm package and bin metadata
 - `bin/noesis`: Node CLI entrypoint
 - `lib/skill-manager.mjs`: symlink skill visibility manager
+- `lib/event.mjs`: learning-event schema and read-only intake check
 - `lib/promote.mjs`: promote-request schema, read-only gate checks, and proposal-only plan artifacts
 - `lib/proposal.mjs`: proposal queue list/show/update review metadata CLI
 - `docs/architecture.md`: current system boundary
 - `docs/entry-skill-workflow.md`: entry-skill and first promote/gate workflow
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
+- `docs/learning-event-schema.md`: learning-event schema and intake check report
 - `docs/manifest-contract.md`: `.noesis/config.toml` and component contract
 - `docs/promote-request-schema.md`: promote-request schema and check report
 - `docs/proposal-queue.md`: proposal queue status and review CLI contract
 - `examples/noesis-config.example.toml`: example Noesis bootstrap manifest
+- `examples/learning-event.example.json`: example learning-event artifact
 - `examples/promote-request.example.json`: example promote-request artifact
 - `findings.md`: accepted decisions and design findings
 - `task_plan.md`: current work tracker

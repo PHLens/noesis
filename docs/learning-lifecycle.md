@@ -33,6 +33,19 @@ Examples:
 Learning events carry short summaries and source references. Full transcripts
 stay outside the default learning record.
 
+The first intake command is:
+
+```bash
+noesis event check .noesis/events/<id>.json
+```
+
+`event check` validates the event but does not route it, create a promote
+request, write proposal artifacts, or apply downstream owner changes. Missing
+or unresolved routing hints are warnings so intake can happen before routing is
+complete.
+
+See `docs/learning-event-schema.md`.
+
 ## Explicit Promote Request
 
 The first user-facing interface may be a promote request.
