@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1",
+  "event_id": "YYYY-MM-DDTHH-MM-SSZ__learning-event",
+  "created_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "workspace": "/path/to/workspace",
+  "kind": "user_correction",
+  "summary": "One compact sentence describing the durable signal.",
+  "source_refs": [
+    {
+      "kind": "slock_thread",
+      "ref": "#channel:message",
+      "summary": "Short source reference summary, not transcript text."
+    }
+  ],
+  "case": {
+    "situation": "When this behavior matters.",
+    "observed": "What actually happened.",
+    "desired": "What should happen next time.",
+    "evidence": "Compact evidence or source-backed note."
+  },
+  "impact": {
+    "severity": "medium",
+    "recurrence": "repeated",
+    "confidence": "high"
+  },
+  "routing_hints": [
+    {
+      "candidate_kind": "unknown",
+      "target_surface": "unknown",
+      "review_required": true,
+      "reason": "Why this may deserve a maintained owner artifact."
+    }
+  ]
+}
