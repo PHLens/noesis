@@ -265,12 +265,96 @@ test('promote check can pass with warnings for unresolved routing detail', (t) =
 });
 
 
+test('promote plan writes proposal-only artifacts from a valid request', (t) => {
+  const workspace = tempWorkspace(t);
+  const requestPath = writeRequest(workspace, validRequest(workspace));
+  const outDir = path.join(workspace, '.noesis', 'proposals');
+
+  const result = runNoesis(['promote', 'plan', requestPath, '--out', outDir, '--json'], { cwd: workspace });
+  const data = JSON.parse(result.stdout);
+  const proposalPath = data.proposals[0].path;
+  const proposal = JSON.parse(fs.readFileSync(proposalPath, 'utf8'));
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.downstream_execution, 'not-run');
+  assert.equal(data.summary.proposal_count, 1);
+  assert.deepEqual(data.writes.sort(), [outDir, proposalPath].sort());
+  assert.equal(proposal.status, 'pending_review');
+  assert.equal(proposal.proposal_type, 'eval_proposal');
+  assert.equal(proposal.target_owner, 'evals');
+  assert.equal(proposal.automation_boundary.allow_apply, false);
+  assert.equal(proposal.automation_boundary.downstream_execution, 'not-run');
+  assert.equal(proposal.outcome.status, 'not_applied');
+  assert.equal(fs.existsSync(path.join(workspace, '.pamem')), false);
+  assert.equal(fs.existsSync(path.join(workspace, '.loreforge')), false);
+});
+
+
+test('promote plan defaults output under request workspace', (t) => {
+  const workspace = tempWorkspace(t);
+  const cwd = tempWorkspace(t);
+  const requestPath = writeRequest(workspace, validRequest(workspace));
+  const expectedOutDir = path.join(workspace, '.noesis', 'proposals');
+
+  const result = runNoesis(['promote', 'plan', requestPath, '--json'], { cwd });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.output_dir, expectedOutDir);
+  assert.equal(data.proposals[0].path.startsWith(expectedOutDir), true);
+  assert.equal(fs.existsSync(expectedOutDir), true);
+  assert.equal(fs.existsSync(path.join(cwd, '.noesis', 'proposals')), false);
+});
+
+
+test('promote plan writes nothing when check has errors', (t) => {
+  const workspace = tempWorkspace(t);
+  const requestPath = writeRequest(workspace, validRequest(workspace, {
+    gate_policy: {
+      mode: 'proposal_only',
+      allow_apply: true,
+      review_required: true,
+    },
+  }));
+  const outDir = path.join(workspace, '.noesis', 'proposals');
+
+  const result = runNoesis(['promote', 'plan', requestPath, '--out', outDir, '--json'], { cwd: workspace, check: false });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(data.status, 'failed');
+  assert.equal(data.summary.proposal_count, 0);
+  assert.deepEqual(data.writes, []);
+  assert.equal(fs.existsSync(outDir), false);
+});
+
+
+test('promote plan refuses to overwrite existing artifacts unless forced', (t) => {
+  const workspace = tempWorkspace(t);
+  const requestPath = writeRequest(workspace, validRequest(workspace));
+  const outDir = path.join(workspace, '.noesis', 'proposals');
+
+  runNoesis(['promote', 'plan', requestPath, '--out', outDir], { cwd: workspace });
+  const rejected = runNoesis(['promote', 'plan', requestPath, '--out', outDir], { cwd: workspace, check: false });
+  assert.equal(rejected.status, 1);
+  assert.match(rejected.stderr, /proposal already exists/);
+
+  const forced = runNoesis(['promote', 'plan', requestPath, '--out', outDir, '--force', '--json'], { cwd: workspace });
+  const data = JSON.parse(forced.stdout);
+  assert.equal(data.status, 'ok');
+  assert.equal(data.actions.find((action) => action.action === 'wrote') !== undefined, true);
+});
+
+
 test('promote command help is available', (t) => {
   const workspace = tempWorkspace(t);
 
   assert.match(runNoesis(['help', 'promote'], { cwd: workspace }).stdout, /Usage: noesis promote/);
   assert.match(runNoesis(['help', 'promote', 'check'], { cwd: workspace }).stdout, /Usage: noesis promote check/);
+  assert.match(runNoesis(['help', 'promote', 'plan'], { cwd: workspace }).stdout, /Usage: noesis promote plan/);
   assert.match(runNoesis(['promote', 'help', 'check'], { cwd: workspace }).stdout, /Usage: noesis promote check/);
+  assert.match(runNoesis(['promote', 'help', 'plan'], { cwd: workspace }).stdout, /Usage: noesis promote plan/);
   assert.match(runNoesis(['promote', 'check', '--help'], { cwd: workspace }).stdout, /Read-only gate/);
+  assert.match(runNoesis(['promote', 'plan', '--help'], { cwd: workspace }).stdout, /Generate proposal-only/);
   assert.match(runNoesis(['--help'], { cwd: workspace }).stdout, /noesis promote check/);
 });
