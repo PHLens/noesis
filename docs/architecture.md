@@ -1,8 +1,9 @@
 # Noesis Architecture
 
-Noesis is the control plane of a heuristic system.
+Noesis is the control plane for reviewable heuristic updates.
 
-The system improves outside model weights: through memory, wiki knowledge, skills, evals, proposals, and reviewable updates.
+The system changes behavior through memory, wiki knowledge, skills, evals,
+proposals, and reviewable updates.
 
 ## System Boundary
 
@@ -15,7 +16,8 @@ interaction / task
   -> outcome recording and compression
 ```
 
-Noesis decides and records. Downstream systems execute their own changes.
+Noesis records routing and proposal decisions. Downstream systems execute their
+own changes.
 
 ## Module Ownership
 
@@ -55,14 +57,35 @@ The `noesis-skill-manager` managed skill is the runtime-facing entrypoint for th
 - routing events to memory, wiki, skill, eval, compression, or discard
 - creating reviewable proposals
 - coordinating review and eval gates
+- managing Noesis-owned local control-plane state under `.noesis/`
 - recording rationale, provenance, and outcome
-- keeping the system from learning unsafe or unreviewed behavior
+- enforcing review boundaries for behavior changes
+
+## Bootstrap Contract
+
+Noesis may own a local bootstrap manifest:
+
+```text
+.noesis/config.toml
+```
+
+The manifest records component pointers and Noesis-owned local state paths.
+Owner configs remain authoritative:
+
+```text
+.pamem/config.toml
+.loreforge/config.toml
+```
+
+The detailed manifest and component contract is in
+`docs/manifest-contract.md`.
 
 ## Learning Artifacts
 
 Noesis should eventually manage these artifact families:
 
 - `learning-event`: a signal that something may be worth learning
+- `promote-request`: explicit local request to route and gate candidate learning residue
 - `writeback-intent`: current routing artifact for pamem/LoreForge destinations
 - `memory-proposal`: request for pamem-owned memory update
 - `wiki-proposal`: request for LoreForge-owned wiki staging
@@ -71,6 +94,11 @@ Noesis should eventually manage these artifact families:
 - `compression-proposal`: request to consolidate repeated or stale artifacts
 
 The current implementation only covers `writeback-intent` and routing evals.
+
+The first promote/gate design slice is documented in
+`docs/entry-skill-workflow.md`. Entry skills stay thin: pamem handles memory,
+LoreForge handles wiki knowledge, Noesis routes and gates candidate learning
+residue, and skill-manager executes approved capability changes.
 
 ## Review And Automation Policy
 
@@ -90,18 +118,19 @@ Requires review:
 - high-impact workflow rule changes
 - changes that supersede existing behavior
 
-Forbidden by default:
+Disallowed by default:
 
-- unreviewed core behavior mutation
+- unreviewed core behavior changes
 - hidden transcript retention
 - direct memory/wiki writes from Noesis
 - sync executor behavior inside Noesis
 
 ## Skill Manager Position
 
-Skill manager belongs inside the Noesis system as a capability lifecycle module, not as a separate long-term system.
+Skill manager is the Noesis capability lifecycle module.
 
-It is not the learning brain. Noesis decides when a repeated workflow or failure pattern deserves a skill proposal. Skill manager only executes approved capability lifecycle operations.
+Noesis decides when a repeated workflow or failure pattern deserves a skill
+proposal. Skill manager executes approved capability lifecycle operations.
 
 ```text
 Noesis detects repeated workflow
@@ -153,22 +182,22 @@ Supported capability operations:
 
 Claude plugin capabilities are enabled and disabled through the official Claude plugin CLI when available, with `.claude/settings.json` fallback for environments without `claude`. `pamem` runtime mutation supports `--runtime claude`, `--runtime codex`, or `--runtime both`; Claude runtime uses the same plugin flow, and Codex bootstrap/removal delegates to the installed `pamem` CLI. `memory-lint`, `memory-rule`, and `sync-request` stay owned by `pamem` and are rejected as standalone symlink skills.
 
-Future skill-manager work should add approved skill proposal application without moving memory governance into Noesis.
+Future skill-manager work should add approved skill proposal application while
+memory governance remains in pamem.
 
-## Non-Goals
+## Out Of Scope
 
-Noesis must not:
-
-- become a memory store
-- become a wiki engine
-- absorb pamem memory governance
-- absorb LoreForge wiki mechanics
-- make skill changes without approval
-- run private sync backends
-- save full transcripts by default
+- memory storage
+- wiki content ownership
+- pamem memory governance
+- LoreForge wiki mechanics
+- skill changes without approval
+- private sync backend execution
+- full transcript retention by default
 
 ## Name
 
 Keep the name `Noesis`.
 
-The name fits the control layer because the hard part is judgment: recognizing what matters, deciding what kind of learning it represents, and sending it to the right owner with enough evidence to review.
+The name identifies the control layer that classifies candidate learning
+signals and routes them to the right owner with enough evidence to review.
