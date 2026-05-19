@@ -14,6 +14,7 @@ The runtime surface stays small:
 |---|---|---|---|
 | pamem entry skill | pamem | load memory context, explain memory rules, request memory updates, run pamem lint/sync through pamem-owned policy | pamem-owned only |
 | LoreForge entry skill | LoreForge | capture source-backed knowledge, stage wiki notes, run wiki validation, promote wiki content | LoreForge-owned only |
+| heuristic-intake skill | Noesis | decide whether task residue is durable and draft learning-event artifacts | no |
 | writeback-router skill | Noesis | classify durable residue and emit writeback intent artifacts | no |
 | noesis-skill-manager skill | Noesis | inspect, verify, add, or remove skills/capabilities through `noesis skill ...` | approved skill visibility only |
 
@@ -35,6 +36,11 @@ task finishes
 ```
 
 Use the writeback router when there is meaningful durable residue.
+
+Use the heuristic-intake skill before routing when the question is whether a
+task signal should become a learning-event artifact. It drafts compact events
+and requires `noesis event check`; it does not create promote requests or apply
+owner changes.
 
 ## Explicit Promote Flow
 
@@ -154,6 +160,14 @@ The third code slice adds the proposal queue review skeleton:
 4. preserve `automation_boundary.allow_apply=false` and
    `outcome.status=not_applied`;
 5. never apply downstream owner changes.
+
+The intake entry-skill slice adds `heuristic-intake`:
+
+1. decide whether task residue is durable enough to capture;
+2. draft `.noesis/events/<id>.json` using the learning-event schema;
+3. require `noesis event check`;
+4. avoid full transcripts, raw logs, private data, and owner writes;
+5. leave event-to-promote-request conversion to the router bridge.
 
 ## Relationship To Existing CLI
 
