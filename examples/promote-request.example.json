@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1",
+  "request_id": "2026-05-19T06-00-00Z__promote",
+  "created_at": "2026-05-19T06:00:00Z",
+  "workspace": "/path/to/workspace",
+  "trigger": {
+    "kind": "user_request",
+    "summary": "User asked Noesis to gate a repeated workflow before turning it into a durable artifact.",
+    "requested_by": "@Percy"
+  },
+  "source_refs": [
+    {
+      "kind": "slock_thread",
+      "ref": "#heuristic-system:59062ab8",
+      "summary": "Task thread defining the promote-request gate slice."
+    }
+  ],
+  "candidate_items": [
+    {
+      "id": "item-1",
+      "summary": "Add a reusable gate for promote requests before Noesis creates proposals.",
+      "evidence": "The current HS workflow needs case-to-gate-to-proposal structure before proposal generation.",
+      "candidate_kind": "eval",
+      "target_surface": "evals",
+      "risk": "medium",
+      "review_required": true,
+      "reason": "The behavior should become a regression check so future promote requests remain reviewable and proposal-only."
+    }
+  ],
+  "requested_outputs": [
+    {
+      "kind": "eval_proposal",
+      "target_owner": "evals",
+      "review_required": true
+    }
+  ],
+  "gate_policy": {
+    "mode": "proposal_only",
+    "allow_apply": false,
+    "review_required": true
+  },
+  "expected_regression": {
+    "kind": "unit_test",
+    "scenario": "A valid promote request is checked through noesis promote check --json.",
+    "acceptance": "The command exits 0, reports no errors, and records downstream_execution as not-run with no writes."
+  }
+}
