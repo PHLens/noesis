@@ -62,6 +62,7 @@ Implemented:
 - `package.json`: npm package metadata for `@phlens/noesis`
 - `bin/noesis`: Node CLI entrypoint
 - `noesis init`, `noesis doctor`, and `noesis config show` for conservative Noesis-owned bootstrap state
+- `noesis promote check` for read-only promote-request schema and gate checks
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
@@ -78,7 +79,7 @@ Not yet implemented:
 - learning event schema
 - proposal queue
 - skill proposal lifecycle
-- entry-skill promote/gate command surface
+- proposal generation from promote requests
 - learning review workflow
 - compression loop
 
@@ -150,6 +151,7 @@ The first implemented command families are bootstrap and skill management:
 noesis init [--workspace <path>] [--with pamem,loreforge|none] [--force] [--json]
 noesis doctor [--workspace <path>] [--json]
 noesis config show [--workspace <path>] [--json]
+noesis promote check .noesis/promote-requests/<id>.json [--json]
 noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
 noesis skill inspect <name> [--source <path>] [--json]
 noesis skill verify [name] [--json]
@@ -168,6 +170,13 @@ content, sync, and skill changes remain outside this command surface.
 Generated manifests enable pamem by default. LoreForge is enabled when the
 `loreforge` CLI is discoverable; otherwise it remains declared but disabled.
 
+`noesis promote check` is a read-only gate for a promote-request JSON artifact.
+It validates schema, short source references, target surface, risk/review
+boundaries, proposal-only policy, and transcript-retention hazards. It does not
+write `.noesis/proposals/`, apply owner changes, mutate memory, stage wiki
+content, or change skills. See `docs/promote-request-schema.md` and
+`examples/promote-request.example.json`.
+
 The skill manager manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, repairs mismatched symlinks, refuses non-symlink conflicts, and removes only visibility links.
 
 The managed `noesis-skill-manager` skill is a thin runtime entrypoint that delegates skill and capability work to `noesis skill ...`; it does not duplicate the CLI implementation.
@@ -183,11 +192,14 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `package.json`: npm package and bin metadata
 - `bin/noesis`: Node CLI entrypoint
 - `lib/skill-manager.mjs`: symlink skill visibility manager
+- `lib/promote.mjs`: promote-request schema and read-only gate checks
 - `docs/architecture.md`: current system boundary
 - `docs/entry-skill-workflow.md`: entry-skill and first promote/gate workflow
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
 - `docs/manifest-contract.md`: `.noesis/config.toml` and component contract
+- `docs/promote-request-schema.md`: promote-request schema and check report
 - `examples/noesis-config.example.toml`: example Noesis bootstrap manifest
+- `examples/promote-request.example.json`: example promote-request artifact
 - `findings.md`: accepted decisions and design findings
 - `task_plan.md`: current work tracker
 - `progress.md`: current progress and next steps

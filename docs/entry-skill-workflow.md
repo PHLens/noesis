@@ -86,9 +86,14 @@ Candidate item fields:
 | `summary` | Compact non-transcript summary |
 | `evidence` | Short evidence pointer or note |
 | `candidate_kind` | `memory`, `wiki`, `skill`, `eval`, `compression`, `mixed`, or `unknown` |
+| `target_surface` | Owning surface such as `pamem`, `loreforge`, `skill-manager`, `evals`, `noesis`, `none`, or `unknown` |
 | `risk` | `low`, `medium`, or `high` |
 | `review_required` | Whether review is required before downstream application |
 | `reason` | Why the item may deserve promotion |
+
+The concrete schema and check report are defined in
+`docs/promote-request-schema.md`. See `examples/promote-request.example.json`
+for a valid request artifact.
 
 ## Gate Rules
 
@@ -125,9 +130,9 @@ The first code slice should be small:
 1. accept an explicit promote-request JSON file;
 2. validate required fields and source-reference shape;
 3. reuse writeback-router vocabulary where possible;
-4. emit proposal-only output;
-5. run existing routing evals and skill-manager verification;
-6. never apply downstream changes.
+4. validate target surface, risk, review, and proposal-only gate boundaries;
+5. reject transcript-like retention fields;
+6. never write proposals or apply downstream changes.
 
 This slice can ship before the full learning-event and proposal queue schemas.
 
