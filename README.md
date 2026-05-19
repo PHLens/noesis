@@ -68,7 +68,8 @@ Implemented:
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
-- managed skill sources for `code-review`, `doc-review`, `noesis-skill-manager`, `shared-devflow`, and `writeback-router`
+- managed skill sources for `code-review`, `doc-review`, `heuristic-intake`, `noesis-skill-manager`, `shared-devflow`, and `writeback-router`
+- `skills/heuristic-intake/`: drafts compact learning-event artifacts from durable task residue
 - `skills/writeback-router/`: classifies durable residue and emits writeback intent
 - `examples/writeback-intent.example.json`: example intent artifact
 - `evals/writeback-routing.jsonl`: golden routing cases
@@ -233,6 +234,9 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `task_plan.md`: current work tracker
 - `progress.md`: current progress and next steps
 - `skills/noesis-skill-manager/SKILL.md`: thin runtime entrypoint for the skill-manager CLI
+- `skills/heuristic-intake/SKILL.md`: intake entry skill for learning-event drafting
+- `skills/heuristic-intake/references/durability-rules.md`: durability and routing-hint rules
+- `skills/heuristic-intake/references/event-template.json`: learning-event draft template
 - `skills/writeback-router/SKILL.md`: current writeback-router skill
 - `skills/writeback-router/references/intent-schema.md`: writeback intent schema reference
 - `skills/writeback-router/references/routing-rules.md`: routing and review policy reference
