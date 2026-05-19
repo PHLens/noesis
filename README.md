@@ -160,11 +160,13 @@ noesis skill remove <name> [--runtime codex|claude|both] [--json]
 The bootstrap commands are intentionally conservative:
 
 - `init` creates `.noesis/config.toml` and Noesis-owned local state directories;
-- `doctor` is read-only, reports missing downstream readiness as warnings unless the manifest itself is invalid, and can consume JSON from declared `status_command` / `validate_command`;
+- `doctor` is read-only for Noesis-owned state, reports missing downstream readiness as warnings unless the manifest itself is invalid, and can consume JSON from declared `status_command` / `validate_command`;
 - `config show` prints the raw or parsed manifest.
 
 They create Noesis-owned bootstrap state only. pamem memory, LoreForge wiki
 content, sync, and skill changes remain outside this command surface.
+Generated manifests enable pamem by default and declare LoreForge as disabled
+until the workspace selects the LoreForge component adapter command.
 
 The skill manager manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, repairs mismatched symlinks, refuses non-symlink conflicts, and removes only visibility links.
 

@@ -68,9 +68,9 @@ Shared fields:
 | `required_cli` | no | CLI executable Noesis should discover |
 | `required_version` | no | Minimum compatible version |
 | `required_entry_skill` | no | Runtime skill expected to be visible |
-| `status_command` | no | Read-only status command contract |
+| `status_command` | no | Read-only status command contract executed during `doctor` |
 | `init_command` | no | Initialization command contract |
-| `validate_command` | no | Read-only validation command contract |
+| `validate_command` | no | Read-only validation command contract executed during `doctor` |
 
 Noesis may call declared read-only commands during `doctor`. The downstream
 owner defines the command semantics. Calling declared `init_command` values is a
@@ -115,9 +115,11 @@ Noesis may expect:
 - validation command for wiki structure and staged content;
 - LoreForge entry skill visibility when wiki workflows are enabled.
 
-The exact command names are left to the LoreForge owner contract. Noesis
-consumes the declared component commands from the manifest and leaves wiki
-mechanics to LoreForge.
+The exact command names are left to the LoreForge owner contract. Until a
+workspace selects the LoreForge adapter command, the generated manifest declares
+the component but keeps it disabled with empty command fields. Noesis consumes
+the declared component commands from the manifest and leaves wiki mechanics to
+LoreForge.
 
 Out of scope for Noesis:
 
@@ -142,7 +144,7 @@ capability change.
 
 ## Doctor Semantics
 
-`noesis doctor` should be read-only.
+`noesis doctor` is read-only for Noesis-owned state.
 
 It may check:
 
@@ -155,6 +157,11 @@ It may check:
   or `ok: true` for a passing component check;
 - required entry skills are visible;
 - Noesis local state directories exist or can be reported missing.
+
+The component command trust boundary is the manifest. `doctor` executes
+declared `status_command` and `validate_command` values and expects the owner to
+keep those commands read-only. Noesis does not sandbox or rewrite those command
+semantics.
 
 It leaves unchanged:
 

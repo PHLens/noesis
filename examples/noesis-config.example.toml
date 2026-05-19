@@ -21,15 +21,17 @@ status_command = "pamem status --workspace ${workspace} --json"
 validate_command = "pamem lint --workspace ${workspace} --json"
 
 [components.loreforge]
-enabled = true
+enabled = false
 owner = "LoreForge"
 config_path = ".loreforge/config.toml"
-required_cli = "loreforge"
-required_version = "0.1.0"
+required_cli = ""
+required_version = ""
 required_entry_skill = "loreforge"
-init_command = "loreforge init --workspace ${workspace}"
-status_command = "loreforge status --workspace ${workspace} --json"
-validate_command = "loreforge validate --workspace ${workspace} --json"
+init_command = ""
+status_command = ""
+validate_command = ""
+# Fill the command fields with the LoreForge component adapter contract after
+# selecting the LoreForge checkout or installed adapter path.
 
 [components.skill_manager]
 enabled = true

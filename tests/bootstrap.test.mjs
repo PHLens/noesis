@@ -48,7 +48,9 @@ test('init creates only Noesis-owned bootstrap state and manifest', (t) => {
   assert.equal(fs.existsSync(path.join(workspace, '.pamem')), false);
   assert.equal(fs.existsSync(path.join(workspace, '.loreforge')), false);
   assert.equal(data.manifest.components.pamem.enabled, true);
-  assert.equal(data.manifest.components.loreforge.enabled, true);
+  assert.equal(data.manifest.components.loreforge.enabled, false);
+  assert.equal(data.manifest.components.loreforge.required_cli, '');
+  assert.equal(data.manifest.components.loreforge.status_command, '');
   assert.equal(data.manifest.components.skill_manager.enabled, true);
 });
 
@@ -154,6 +156,23 @@ test('doctor runs declared read-only component status and validate commands', (t
 
   assert.equal(data.checks.find((item) => item.id === 'component.pamem.status').envelope.status, 'ok');
   assert.equal(data.checks.find((item) => item.id === 'component.pamem.validate').envelope.component, 'fake');
+});
+
+
+test('doctor accepts skill-manager status command envelope', (t) => {
+  const workspace = tempWorkspace(t);
+  runNoesis(['init', '--workspace', workspace, '--with', 'none'], { cwd: workspace });
+  runNoesis(['skill', 'add', 'noesis-skill-manager', '--workspace', workspace], { cwd: workspace });
+
+  const result = runNoesis(['doctor', '--workspace', workspace, '--json'], { cwd: workspace, check: false });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 0);
+  assert.equal(data.status, 'ok');
+  const statusCheck = data.checks.find((item) => item.id === 'component.skill_manager.status');
+  assert.equal(statusCheck.status, 'ok');
+  assert.equal(statusCheck.envelope.status, 'ok');
+  assert.equal(statusCheck.envelope.command, 'skill list');
 });
 
 
