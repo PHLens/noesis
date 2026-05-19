@@ -59,7 +59,9 @@ test('init creates only Noesis-owned bootstrap state and manifest', (t) => {
   assert.equal(data.manifest.components.pamem.enabled, true);
   assert.equal(data.manifest.components.loreforge.enabled, commandExists('loreforge'));
   assert.equal(data.manifest.components.loreforge.required_cli, 'loreforge');
-  assert.equal(data.manifest.components.loreforge.status_command, 'loreforge status --wiki ${workspace} --json');
+  assert.equal(data.manifest.components.loreforge.status_command, 'loreforge status --json');
+  assert.equal(data.manifest.components.loreforge.validate_command, 'loreforge validate --all-domains --json');
+  assert.equal(data.manifest.components.loreforge.init_command, 'loreforge init --wiki ${workspace} --domain ai-research --json');
   assert.equal(data.manifest.components.skill_manager.enabled, true);
 });
 
@@ -87,7 +89,8 @@ test('loreforge component stays declared but disabled when CLI is unavailable', 
 
   assert.equal(data.manifest.components.loreforge.enabled, false);
   assert.equal(data.manifest.components.loreforge.required_cli, 'loreforge');
-  assert.equal(data.manifest.components.loreforge.status_command, 'loreforge status --wiki ${workspace} --json');
+  assert.equal(data.manifest.components.loreforge.status_command, 'loreforge status --json');
+  assert.equal(data.manifest.components.loreforge.validate_command, 'loreforge validate --all-domains --json');
 });
 
 

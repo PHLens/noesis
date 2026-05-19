@@ -120,7 +120,9 @@ manifests use the stable `loreforge status`, `loreforge validate`, and
 `loreforge init` CLI surface when that CLI is discoverable. If the CLI is not
 available, Noesis still declares the component but leaves it disabled. Noesis
 consumes the declared component commands from the manifest and leaves wiki
-mechanics to LoreForge.
+mechanics to LoreForge. The generated status and validation commands use the
+LoreForge registry/default wiki; the init command uses `${workspace}` only as a
+candidate wiki path for a proposal-only plan.
 
 Out of scope for Noesis:
 

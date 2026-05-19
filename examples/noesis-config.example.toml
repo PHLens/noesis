@@ -28,8 +28,8 @@ required_cli = "loreforge"
 required_version = "0.1.0"
 required_entry_skill = "loreforge"
 init_command = "loreforge init --wiki ${workspace} --domain ai-research --json"
-status_command = "loreforge status --wiki ${workspace} --json"
-validate_command = "loreforge validate --wiki ${workspace} --all-domains --json"
+status_command = "loreforge status --json"
+validate_command = "loreforge validate --all-domains --json"
 
 [components.skill_manager]
 enabled = true
