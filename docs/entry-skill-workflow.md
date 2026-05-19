@@ -146,6 +146,15 @@ The second code slice adds proposal-only planning:
    boundary in each proposal artifact;
 5. never apply downstream owner changes.
 
+The third code slice adds the proposal queue review skeleton:
+
+1. list proposal artifacts under `.noesis/proposals/`;
+2. show one proposal by `proposal_id` or file path;
+3. update review metadata to `approved`, `rejected`, or `superseded`;
+4. preserve `automation_boundary.allow_apply=false` and
+   `outcome.status=not_applied`;
+5. never apply downstream owner changes.
+
 ## Relationship To Existing CLI
 
 Existing commands stay valid:
@@ -172,16 +181,18 @@ The first promote/gate command should be additive. Candidate command shape:
 ```bash
 noesis promote check .noesis/promote-requests/<id>.json
 noesis promote plan .noesis/promote-requests/<id>.json --out .noesis/proposals/
+noesis proposal list
+noesis proposal show <proposal-id-or-path>
+noesis proposal update <proposal-id-or-path> --status approved
 ```
 
 `check` should be read-only. `plan` should write proposal artifacts only.
+`proposal update` should write only proposal review metadata.
 
 ## Open Design Questions
 
 - Should promote-request become the final learning-event schema, or remain a
   wrapper around learning events?
-- Should proposal artifacts live under `.noesis/proposals/`, or should Noesis
-  delegate immediately to downstream owner staging directories?
 - Which evals should gate skill proposals before `noesis skill add` is allowed?
 - How should approved downstream application outcomes be recorded without
   making Noesis a third storage system?
