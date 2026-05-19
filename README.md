@@ -63,6 +63,7 @@ Implemented:
 - `bin/noesis`: Node CLI entrypoint
 - `noesis init`, `noesis doctor`, and `noesis config show` for conservative Noesis-owned bootstrap state
 - `noesis promote check` and `noesis promote plan` for checked, proposal-only promote flow
+- `noesis proposal list`, `noesis proposal show`, and `noesis proposal update` for proposal queue review metadata
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
@@ -77,7 +78,6 @@ Implemented:
 Not yet implemented:
 
 - learning event schema
-- proposal queue
 - skill proposal lifecycle
 - learning review workflow
 - compression loop
@@ -152,6 +152,9 @@ noesis doctor [--workspace <path>] [--json]
 noesis config show [--workspace <path>] [--json]
 noesis promote check .noesis/promote-requests/<id>.json [--json]
 noesis promote plan .noesis/promote-requests/<id>.json [--out .noesis/proposals] [--json]
+noesis proposal list [--workspace <path>] [--dir .noesis/proposals] [--json]
+noesis proposal show <proposal-id-or-path> [--workspace <path>] [--json]
+noesis proposal update <proposal-id-or-path> --status approved [--reviewer <name>] [--note <text>] [--json]
 noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
 noesis skill inspect <name> [--source <path>] [--json]
 noesis skill verify [name] [--json]
@@ -183,6 +186,12 @@ does not apply owner changes, mutate memory, stage wiki content, or change
 skills. Existing proposal artifacts are not overwritten unless `--force` is
 provided.
 
+`noesis proposal list` and `noesis proposal show` inspect the local proposal
+queue. `noesis proposal update` records review metadata on one proposal artifact
+with statuses such as `approved`, `rejected`, or `superseded`. It writes only
+the proposal JSON file and preserves `outcome.status=not_applied`; owner apply
+flows remain outside Noesis. See `docs/proposal-queue.md`.
+
 The skill manager manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, repairs mismatched symlinks, refuses non-symlink conflicts, and removes only visibility links.
 
 The managed `noesis-skill-manager` skill is a thin runtime entrypoint that delegates skill and capability work to `noesis skill ...`; it does not duplicate the CLI implementation.
@@ -199,11 +208,13 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `bin/noesis`: Node CLI entrypoint
 - `lib/skill-manager.mjs`: symlink skill visibility manager
 - `lib/promote.mjs`: promote-request schema, read-only gate checks, and proposal-only plan artifacts
+- `lib/proposal.mjs`: proposal queue list/show/update review metadata CLI
 - `docs/architecture.md`: current system boundary
 - `docs/entry-skill-workflow.md`: entry-skill and first promote/gate workflow
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
 - `docs/manifest-contract.md`: `.noesis/config.toml` and component contract
 - `docs/promote-request-schema.md`: promote-request schema and check report
+- `docs/proposal-queue.md`: proposal queue status and review CLI contract
 - `examples/noesis-config.example.toml`: example Noesis bootstrap manifest
 - `examples/promote-request.example.json`: example promote-request artifact
 - `findings.md`: accepted decisions and design findings

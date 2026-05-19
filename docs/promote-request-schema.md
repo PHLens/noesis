@@ -341,6 +341,37 @@ The artifact must preserve the review boundary:
 
 Existing proposal files are not overwritten unless `--force` is provided.
 
+## Proposal Queue Review
+
+After `plan` writes proposal artifacts, the queue can be inspected and reviewed
+with:
+
+```bash
+noesis proposal list --workspace /path/to/workspace
+noesis proposal show <proposal-id-or-path> --json
+noesis proposal update <proposal-id-or-path> --status approved --reviewer @Percy
+```
+
+`proposal list` and `proposal show` are read-only. `proposal update` writes only
+the selected proposal artifact's review metadata. It does not apply owner
+changes.
+
+Review statuses:
+
+- `pending_review`
+- `approved`
+- `rejected`
+- `superseded`
+
+`applied` is reserved for a future owner-apply flow and cannot be set by the
+review CLI.
+
+When a proposal is updated, Noesis appends a compact `review_history` entry and
+sets `updated_at`. It preserves `automation_boundary.allow_apply=false` and
+`outcome.status=not_applied`.
+
+See `docs/proposal-queue.md`.
+
 ## Plan Report
 
 JSON output has this shape:

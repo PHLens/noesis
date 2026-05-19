@@ -68,27 +68,43 @@ Noesis generates proposals before downstream systems apply changes.
 
 Common proposal fields:
 
-- `id`
-- `type`
+- `proposal_id`
+- `proposal_type`
 - `status`
 - `created_at`
+- `updated_at`
 - `source_refs`
 - `summary`
 - `target_owner`
-- `target_path` or `target_capability`
+- `target_surface`
 - `rationale`
 - `review_required`
 - `risk`
 - `acceptance_checks`
+- `review_history`
 - `outcome`
 
 Statuses:
 
-- `pending`
+- `pending_review`
 - `approved`
 - `rejected`
 - `applied`
 - `superseded`
+
+`applied` is reserved for owner-owned apply flows. The Noesis review CLI can
+mark proposals `approved`, `rejected`, or `superseded`, but it does not apply
+downstream changes.
+
+The first queue CLI is:
+
+```bash
+noesis proposal list
+noesis proposal show <proposal-id-or-path>
+noesis proposal update <proposal-id-or-path> --status approved
+```
+
+See `docs/proposal-queue.md`.
 
 ## Skill Proposal
 
