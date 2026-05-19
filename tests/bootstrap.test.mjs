@@ -33,6 +33,15 @@ function runNoesis(args, { cwd, check = true, env = {} }) {
 }
 
 
+function commandExists(command) {
+  const result = spawnSync(process.platform === 'win32' ? 'where' : 'command', process.platform === 'win32' ? [command] : ['-v', command], {
+    shell: process.platform !== 'win32',
+    stdio: 'ignore',
+  });
+  return result.status === 0;
+}
+
+
 test('init creates only Noesis-owned bootstrap state and manifest', (t) => {
   const workspace = tempWorkspace(t);
 
@@ -48,9 +57,9 @@ test('init creates only Noesis-owned bootstrap state and manifest', (t) => {
   assert.equal(fs.existsSync(path.join(workspace, '.pamem')), false);
   assert.equal(fs.existsSync(path.join(workspace, '.loreforge')), false);
   assert.equal(data.manifest.components.pamem.enabled, true);
-  assert.equal(data.manifest.components.loreforge.enabled, false);
-  assert.equal(data.manifest.components.loreforge.required_cli, '');
-  assert.equal(data.manifest.components.loreforge.status_command, '');
+  assert.equal(data.manifest.components.loreforge.enabled, commandExists('loreforge'));
+  assert.equal(data.manifest.components.loreforge.required_cli, 'loreforge');
+  assert.equal(data.manifest.components.loreforge.status_command, 'loreforge status --wiki ${workspace} --json');
   assert.equal(data.manifest.components.skill_manager.enabled, true);
 });
 
@@ -64,6 +73,21 @@ test('init can disable downstream component contracts', (t) => {
   assert.equal(data.manifest.components.pamem.enabled, false);
   assert.equal(data.manifest.components.loreforge.enabled, false);
   assert.equal(data.manifest.components.skill_manager.enabled, true);
+});
+
+
+test('loreforge component stays declared but disabled when CLI is unavailable', (t) => {
+  const workspace = tempWorkspace(t);
+
+  const result = runNoesis(['init', '--workspace', workspace, '--json'], {
+    cwd: workspace,
+    env: { PATH: '' },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.manifest.components.loreforge.enabled, false);
+  assert.equal(data.manifest.components.loreforge.required_cli, 'loreforge');
+  assert.equal(data.manifest.components.loreforge.status_command, 'loreforge status --wiki ${workspace} --json');
 });
 
 

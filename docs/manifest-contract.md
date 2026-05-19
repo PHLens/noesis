@@ -115,11 +115,12 @@ Noesis may expect:
 - validation command for wiki structure and staged content;
 - LoreForge entry skill visibility when wiki workflows are enabled.
 
-The exact command names are left to the LoreForge owner contract. Until a
-workspace selects the LoreForge adapter command, the generated manifest declares
-the component but keeps it disabled with empty command fields. Noesis consumes
-the declared component commands from the manifest and leaves wiki mechanics to
-LoreForge.
+The exact command names are left to the LoreForge owner contract. Generated
+manifests use the stable `loreforge status`, `loreforge validate`, and
+`loreforge init` CLI surface when that CLI is discoverable. If the CLI is not
+available, Noesis still declares the component but leaves it disabled. Noesis
+consumes the declared component commands from the manifest and leaves wiki
+mechanics to LoreForge.
 
 Out of scope for Noesis:
 
