@@ -21,6 +21,18 @@ owner-boundary, review-boundary, and transcript-retention issues. It does not
 write `.noesis/proposals/`, call downstream owner apply commands, mutate memory,
 stage wiki content, or change skills.
 
+After `check` passes, the first proposal-only planner command is:
+
+```bash
+noesis promote plan .noesis/promote-requests/<id>.json --out .noesis/proposals/
+noesis promote plan .noesis/promote-requests/<id>.json --json
+```
+
+`plan` reruns `check` first. If check errors are present, it writes nothing and
+exits `1`. If check has only warnings, it may write proposal artifacts and
+returns a warning status so reviewers can resolve the open issues before owner
+application.
+
 ## Artifact Path
 
 Recommended path:
@@ -267,3 +279,95 @@ JSON output has this shape:
 
 Exit status is `1` when errors are present and `0` otherwise. Warnings indicate
 work that should be clarified before planning.
+
+## Proposal Artifact
+
+`plan` writes one JSON file per requested output. The default output directory is:
+
+```text
+.noesis/proposals/
+```
+
+Artifact path:
+
+```text
+.noesis/proposals/<request_id>__NN__<proposal_type>.json
+```
+
+Proposal artifacts are review records. They are not applied changes.
+
+Common fields:
+
+```json
+{
+  "schema_version": "0.1",
+  "proposal_id": "2026-05-19T06-00-00Z__promote__01__eval_proposal",
+  "proposal_type": "eval_proposal",
+  "status": "pending_review",
+  "created_at": "2026-05-19T07:00:00.000Z",
+  "request_id": "2026-05-19T06-00-00Z__promote",
+  "request_path": ".noesis/promote-requests/2026-05-19T06-00-00Z__promote.json",
+  "source_refs": [],
+  "trigger": {},
+  "target_owner": "evals",
+  "target_surface": "evals",
+  "review_required": true,
+  "risk": "medium",
+  "summary": "Short proposal summary.",
+  "rationale": "Why the proposal should exist.",
+  "candidate_items": [],
+  "requested_output": {},
+  "acceptance_checks": [],
+  "automation_boundary": {
+    "mode": "proposal_only",
+    "allow_apply": false,
+    "downstream_execution": "not-run",
+    "owner_apply_required": true
+  },
+  "outcome": {
+    "status": "not_applied",
+    "applied_by": null,
+    "applied_at": null
+  }
+}
+```
+
+The artifact must preserve the review boundary:
+
+- `status` starts as `pending_review`.
+- `automation_boundary.allow_apply` is `false`.
+- `automation_boundary.downstream_execution` is `not-run`.
+- `outcome.status` starts as `not_applied`.
+
+Existing proposal files are not overwritten unless `--force` is provided.
+
+## Plan Report
+
+JSON output has this shape:
+
+```json
+{
+  "command": "promote plan",
+  "status": "ok",
+  "schema_version": "0.1",
+  "request_path": "/path/to/request.json",
+  "request_id": "2026-05-19T06-00-00Z__promote",
+  "output_dir": "/path/to/.noesis/proposals",
+  "downstream_execution": "not-run",
+  "writes": [
+    "/path/to/.noesis/proposals/2026-05-19T06-00-00Z__promote__01__eval_proposal.json"
+  ],
+  "summary": {
+    "error_count": 0,
+    "warning_count": 0,
+    "info_count": 1,
+    "proposal_count": 1
+  },
+  "check_report": {},
+  "proposals": []
+}
+```
+
+`writes` reports only proposal-plan artifacts and directories that Noesis
+created or overwrote. It does not include downstream owner writes because plan
+does not perform them.

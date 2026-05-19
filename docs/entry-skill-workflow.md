@@ -136,6 +136,16 @@ The first code slice should be small:
 
 This slice can ship before the full learning-event and proposal queue schemas.
 
+The second code slice adds proposal-only planning:
+
+1. rerun `check` against an explicit promote-request JSON file;
+2. refuse to plan when check errors are present;
+3. write isolated pending-review proposal artifacts under `.noesis/proposals/`
+   or an explicit `--out` directory;
+4. include owner, risk, candidate items, acceptance checks, and automation
+   boundary in each proposal artifact;
+5. never apply downstream owner changes.
+
 ## Relationship To Existing CLI
 
 Existing commands stay valid:
