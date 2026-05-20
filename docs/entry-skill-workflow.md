@@ -125,7 +125,7 @@ Disallowed by default:
 
 - full transcript retention as a learning artifact
 - hidden memory, wiki, or skill mutation
-- sync executor behavior inside Noesis
+- memory executor behavior inside Noesis
 - unreviewed behavior changes
 - promotion of private or source-unsafe content
 
