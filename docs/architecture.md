@@ -123,7 +123,7 @@ Disallowed by default:
 - unreviewed core behavior changes
 - hidden transcript retention
 - direct memory/wiki writes from Noesis
-- sync executor behavior inside Noesis
+- memory executor behavior inside Noesis
 
 ## Skill Manager Position
 
@@ -180,7 +180,7 @@ Supported capability operations:
 - Claude plugin capabilities: `humanize`, `superpowers`
 - runtime capability: `pamem`
 
-Claude plugin capabilities are enabled and disabled through the official Claude plugin CLI when available, with `.claude/settings.json` fallback for environments without `claude`. `pamem` runtime mutation supports `--runtime claude`, `--runtime codex`, or `--runtime both`; Claude runtime uses the same plugin flow, and Codex bootstrap/removal delegates to the installed `pamem` CLI. `memory-lint`, `memory-rule`, and `sync-request` stay owned by `pamem` and are rejected as standalone symlink skills.
+Claude plugin capabilities are enabled and disabled through the official Claude plugin CLI when available, with `.claude/settings.json` fallback for environments without `claude`. `pamem` runtime mutation supports `--runtime claude`, `--runtime codex`, or `--runtime both`; Claude runtime uses the same plugin flow, and Codex bootstrap/removal delegates to the installed `pamem` CLI. `memory-lint` and `memory-rule` stay owned by `pamem` and are rejected as standalone symlink skills.
 
 Future skill-manager work should add approved skill proposal application while
 memory governance remains in pamem.

@@ -55,7 +55,7 @@ Noesis creates relative symlinks in both `.codex/skills/` and `.claude/skills/`,
 
 - Known plugin capabilities such as `humanize` and `superpowers` are managed through the Claude plugin CLI when available, with settings-json fallback only when the Claude CLI is absent.
 - `pamem` is a runtime capability, not a standalone symlink skill. Use `--runtime claude`, `--runtime codex`, or `--runtime both` when adding or removing it.
-- Do not add `memory-lint`, `memory-rule`, or `sync-request` as standalone skills; they are provided by pamem.
+- Do not add `memory-lint` or `memory-rule` as standalone skills; they are provided by pamem.
 
 ## If Noesis Is Missing
 

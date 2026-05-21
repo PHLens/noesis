@@ -395,6 +395,30 @@ test('packaged noesis skill manager entry skill installs as a managed source', (
 });
 
 
+test('packaged heuristic intake entry skill installs as a managed source', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+
+  const add = runNoesis(['skill', 'add', 'heuristic-intake', '--json'], { cwd: workspace, home });
+  const addData = JSON.parse(add.stdout);
+  const source = path.join(REPO_ROOT, 'skills', 'heuristic-intake');
+
+  assert.equal(addData.source.kind, 'managed');
+  assert.equal(addData.source.path, fs.realpathSync(source));
+  assert.equal(addData.skill.status, 'ok');
+  assert.equal(fs.existsSync(path.join(source, 'references', 'durability-rules.md')), true);
+  assert.equal(fs.existsSync(path.join(source, 'references', 'event-template.json')), true);
+  assert.equal(fs.realpathSync(path.join(workspace, '.codex', 'skills', 'heuristic-intake')), fs.realpathSync(source));
+  assert.equal(fs.realpathSync(path.join(workspace, '.claude', 'skills', 'heuristic-intake')), fs.realpathSync(source));
+
+  const verify = runNoesis(['skill', 'verify', 'heuristic-intake', '--json'], { cwd: workspace, home });
+  assert.equal(JSON.parse(verify.stdout).status, 'ok');
+});
+
+
 test('explicit source can select external when managed source exists', (t) => {
   const root = withTempDir(t);
   const home = path.join(root, 'home');
@@ -1057,8 +1081,4 @@ test('protected pamem-provided skills are not standalone symlink skills', (t) =>
   const add = runNoesis(['skill', 'add', 'memory-rule'], { cwd: workspace, home, check: false });
   assert.equal(add.status, 1);
   assert.match(add.stderr, /provided by pamem/);
-
-  const remove = runNoesis(['skill', 'remove', 'sync-request'], { cwd: workspace, home, check: false });
-  assert.equal(remove.status, 1);
-  assert.match(remove.stderr, /provided by pamem/);
 });

@@ -68,7 +68,8 @@ Implemented:
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
-- managed skill sources for `code-review`, `doc-review`, `noesis-skill-manager`, `shared-devflow`, and `writeback-router`
+- managed skill sources for `code-review`, `doc-review`, `heuristic-intake`, `noesis-skill-manager`, `shared-devflow`, and `writeback-router`
+- `skills/heuristic-intake/`: drafts compact learning-event artifacts from durable task residue
 - `skills/writeback-router/`: classifies durable residue and emits writeback intent
 - `examples/writeback-intent.example.json`: example intent artifact
 - `evals/writeback-routing.jsonl`: golden routing cases
@@ -207,7 +208,7 @@ The managed `noesis-skill-manager` skill is a thin runtime entrypoint that deleg
 
 Target resolution supports the current directory, explicit `--workspace`, pamem `--agent-id` via `pamem status --agent-id <id> --json`, and explicit `--global`. For pamem agents, skill visibility is managed on the resolved `root`; the shared `memory_repo` is reported for context but is not used as a `.codex/skills` or `.claude/skills` target.
 
-Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and disabled through the official Claude plugin CLI when available, with `.claude/settings.json` fallback for environments without `claude`. The `pamem` runtime capability can be enabled or removed for Claude plugin runtime, Codex bootstrap, or both with `--runtime`; Codex bootstrap delegates to the installed pamem CLI. `memory-lint`, `memory-rule`, and `sync-request` are provided by `pamem` and are not managed as standalone symlink skills.
+Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and disabled through the official Claude plugin CLI when available, with `.claude/settings.json` fallback for environments without `claude`. The `pamem` runtime capability can be enabled or removed for Claude plugin runtime, Codex bootstrap, or both with `--runtime`; Codex bootstrap delegates to the installed pamem CLI. `memory-lint` and `memory-rule` are provided by `pamem` and are not managed as standalone symlink skills.
 
 `@phlens/pamem` is a package dependency so `--agent-id` can resolve through the installed pamem bin. If the dependency bin is unavailable, the CLI falls back to `pamem` on `PATH`.
 
@@ -233,6 +234,9 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `task_plan.md`: current work tracker
 - `progress.md`: current progress and next steps
 - `skills/noesis-skill-manager/SKILL.md`: thin runtime entrypoint for the skill-manager CLI
+- `skills/heuristic-intake/SKILL.md`: intake entry skill for learning-event drafting
+- `skills/heuristic-intake/references/durability-rules.md`: durability and routing-hint rules
+- `skills/heuristic-intake/references/event-template.json`: learning-event draft template
 - `skills/writeback-router/SKILL.md`: current writeback-router skill
 - `skills/writeback-router/references/intent-schema.md`: writeback intent schema reference
 - `skills/writeback-router/references/routing-rules.md`: routing and review policy reference
