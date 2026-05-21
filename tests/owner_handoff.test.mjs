@@ -200,6 +200,23 @@ test('owner handoff refuses pending, noop, and unknown-owner proposals', (t) => 
 });
 
 
+test('owner handoff rejects proposal type and owner mismatches', (t) => {
+  const workspace = tempWorkspace(t);
+  const { proposalPath } = createProposal(workspace);
+  const proposal = JSON.parse(fs.readFileSync(proposalPath, 'utf8'));
+  proposal.target_owner = 'LoreForge';
+  proposal.target_surface = 'loreforge';
+  fs.writeFileSync(proposalPath, `${JSON.stringify(proposal, null, 2)}\n`);
+
+  const result = runNoesis(['owner', 'handoff', proposalPath, '--json'], { cwd: workspace, check: false });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /target mismatch/);
+  assert.match(result.stderr, /memory_proposal requires target_owner=pamem/);
+  assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'owner-handoffs')), false);
+});
+
+
 test('owner handoff refuses overwrite unless forced', (t) => {
   const workspace = tempWorkspace(t);
   const { proposalId } = createProposal(workspace);
