@@ -122,9 +122,26 @@ noesis proposal list
 noesis proposal summary
 noesis proposal show <proposal-id-or-path>
 noesis proposal update <proposal-id-or-path> --status approved
+noesis eval handoff <proposal-id-or-path>
 ```
 
 See `docs/proposal-queue.md`.
+
+## Eval Owner Handoff
+
+`noesis eval handoff` is the first owner-specific handoff skeleton. It consumes
+an approved `eval_proposal` and writes a report under
+`.noesis/reports/eval-handoffs/`.
+
+The report is a pending owner-action artifact, not an applied eval. It preserves
+the Noesis boundary:
+
+- no eval files are created;
+- no evals are executed;
+- no proposal outcome is marked applied;
+- downstream owner state is unchanged.
+
+See `docs/eval-handoff.md`.
 
 ## Skill Proposal
 

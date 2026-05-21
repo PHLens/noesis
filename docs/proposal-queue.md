@@ -158,3 +158,8 @@ The proposal queue is intentionally small:
 
 The next owner-specific slice can consume `approved` proposals and perform
 subsystem-specific apply/report flows.
+
+The first such slice is `noesis eval handoff`, documented in
+`docs/eval-handoff.md`. It consumes approved `eval_proposal` artifacts and
+writes a Noesis report for eval-owner action without creating eval files or
+marking the proposal applied.

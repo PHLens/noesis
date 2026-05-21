@@ -205,11 +205,14 @@ noesis proposal list
 noesis proposal summary
 noesis proposal show <proposal-id-or-path>
 noesis proposal update <proposal-id-or-path> --status approved
+noesis eval handoff <approved-eval-proposal-id-or-path>
 ```
 
 `check` should be read-only. `plan` should write proposal artifacts only.
 `proposal list`, `proposal summary`, and `proposal show` should be read-only.
 `proposal update` should write only proposal review metadata.
+`eval handoff` should write only a Noesis report for the eval owner and should
+not create eval artifacts or run evals.
 
 ## Open Design Questions
 
