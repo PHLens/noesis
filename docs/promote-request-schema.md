@@ -348,13 +348,14 @@ with:
 
 ```bash
 noesis proposal list --workspace /path/to/workspace
+noesis proposal summary --workspace /path/to/workspace --json
 noesis proposal show <proposal-id-or-path> --json
 noesis proposal update <proposal-id-or-path> --status approved --reviewer @Percy
 ```
 
-`proposal list` and `proposal show` are read-only. `proposal update` writes only
-the selected proposal artifact's review metadata. It does not apply owner
-changes.
+`proposal list`, `proposal summary`, and `proposal show` are read-only.
+`proposal update` writes only the selected proposal artifact's review metadata.
+It does not apply owner changes.
 
 Review statuses:
 

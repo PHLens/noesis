@@ -64,7 +64,7 @@ Implemented:
 - `noesis event check` for read-only learning-event intake validation
 - `noesis event promote` for event-to-promote-request bridge artifacts
 - `noesis promote check` and `noesis promote plan` for checked, proposal-only promote flow
-- `noesis proposal list`, `noesis proposal show`, and `noesis proposal update` for proposal queue review metadata
+- `noesis proposal list`, `noesis proposal summary`, `noesis proposal show`, and `noesis proposal update` for proposal queue review metadata
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
@@ -151,6 +151,7 @@ noesis event promote .noesis/events/<id>.json [--out .noesis/promote-requests] [
 noesis promote check .noesis/promote-requests/<id>.json [--json]
 noesis promote plan .noesis/promote-requests/<id>.json [--out .noesis/proposals] [--json]
 noesis proposal list [--workspace <path>] [--dir .noesis/proposals] [--json]
+noesis proposal summary [--workspace <path>] [--dir .noesis/proposals] [--stale-days 7] [--json]
 noesis proposal show <proposal-id-or-path> [--workspace <path>] [--json]
 noesis proposal update <proposal-id-or-path> --status approved [--reviewer <name>] [--note <text>] [--json]
 noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
@@ -197,11 +198,13 @@ does not apply owner changes, mutate memory, stage wiki content, or change
 skills. Existing proposal artifacts are not overwritten unless `--force` is
 provided.
 
-`noesis proposal list` and `noesis proposal show` inspect the local proposal
-queue. `noesis proposal update` records review metadata on one proposal artifact
-with statuses such as `approved`, `rejected`, or `superseded`. It writes only
-the proposal JSON file and preserves `outcome.status=not_applied`; owner apply
-flows remain outside Noesis. See `docs/proposal-queue.md`.
+`noesis proposal list`, `noesis proposal summary`, and `noesis proposal show`
+inspect the local proposal queue. `summary` aggregates pending, stale,
+high-risk, invalid, and owner-handoff warning conditions without writing state.
+`noesis proposal update` records review metadata on one proposal artifact with
+statuses such as `approved`, `rejected`, or `superseded`. It writes only the
+proposal JSON file and preserves `outcome.status=not_applied`; owner apply flows
+remain outside Noesis. See `docs/proposal-queue.md`.
 
 The skill manager manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, repairs mismatched symlinks, refuses non-symlink conflicts, and removes only visibility links.
 

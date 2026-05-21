@@ -136,6 +136,61 @@ test('proposal show resolves a proposal by id', (t) => {
 });
 
 
+test('proposal summary reports queue warnings without writing state', (t) => {
+  const workspace = tempWorkspace(t);
+  const { proposalId, proposalPath } = createProposal(workspace);
+  const proposal = JSON.parse(fs.readFileSync(proposalPath, 'utf8'));
+  proposal.risk = 'high';
+  proposal.created_at = '2026-05-01T00:00:00Z';
+  fs.writeFileSync(proposalPath, `${JSON.stringify(proposal, null, 2)}\n`);
+  const invalidPath = path.join(workspace, '.noesis', 'proposals', 'invalid.json');
+  fs.writeFileSync(invalidPath, '{not-json\n');
+  const before = snapshot(workspace);
+
+  const result = runNoesis(['proposal', 'summary', '--stale-days', '0', '--json'], { cwd: workspace });
+  const after = snapshot(workspace);
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.command, 'proposal summary');
+  assert.equal(data.status, 'warning');
+  assert.equal(data.summary.proposal_count, 2);
+  assert.equal(data.summary.valid_count, 1);
+  assert.equal(data.summary.invalid_count, 1);
+  assert.equal(data.summary.by_status.pending_review, 1);
+  assert.equal(data.summary.by_status.invalid, 1);
+  assert.equal(data.summary.high_risk_pending_count, 1);
+  assert.equal(data.summary.stale_count, 1);
+  assert.equal(data.summary.error_count, 1);
+  assert.equal(data.downstream_execution, 'not-run');
+  assert.deepEqual(data.writes, []);
+  assert(data.warnings.some((warning) => warning.code === 'high_risk_pending_review' && warning.proposal_id === proposalId));
+  assert(data.warnings.some((warning) => warning.code === 'stale_pending_review' && warning.proposal_id === proposalId));
+  assert(data.warnings.some((warning) => warning.code === 'invalid_artifact' && warning.path === invalidPath));
+  assert(data.proposals.some((proposal) => proposal.proposal_id === proposalId && proposal.warning_count === 2));
+  assert(data.proposals.some((proposal) => proposal.path === invalidPath && proposal.warning_count === 1));
+  assert.deepEqual(after, before);
+});
+
+
+test('proposal summary reports approved owner handoff pending', (t) => {
+  const workspace = tempWorkspace(t);
+  const { proposalId } = createProposal(workspace);
+  runNoesis(['proposal', 'update', proposalId, '--status', 'approved'], { cwd: workspace });
+  const before = snapshot(workspace);
+
+  const result = runNoesis(['proposal', 'summary', '--json'], { cwd: workspace });
+  const after = snapshot(workspace);
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'warning');
+  assert.equal(data.summary.approved_count, 1);
+  assert.equal(data.summary.owner_handoff_count, 1);
+  assert(data.warnings.some((warning) => warning.code === 'approved_owner_handoff_pending' && warning.proposal_id === proposalId));
+  assert.deepEqual(data.writes, []);
+  assert.deepEqual(after, before);
+});
+
+
 test('proposal update records review metadata without owner apply', (t) => {
   const workspace = tempWorkspace(t);
   const { proposalId, proposalPath } = createProposal(workspace);
@@ -219,12 +274,16 @@ test('proposal command help is available', (t) => {
 
   assert.match(runNoesis(['help', 'proposal'], { cwd: workspace }).stdout, /Usage: noesis proposal/);
   assert.match(runNoesis(['help', 'proposal', 'list'], { cwd: workspace }).stdout, /Usage: noesis proposal list/);
+  assert.match(runNoesis(['help', 'proposal', 'summary'], { cwd: workspace }).stdout, /Usage: noesis proposal summary/);
   assert.match(runNoesis(['help', 'proposal', 'show'], { cwd: workspace }).stdout, /Usage: noesis proposal show/);
   assert.match(runNoesis(['help', 'proposal', 'update'], { cwd: workspace }).stdout, /Usage: noesis proposal update/);
   assert.match(runNoesis(['proposal', 'help', 'list'], { cwd: workspace }).stdout, /List proposal artifacts/);
+  assert.match(runNoesis(['proposal', 'help', 'summary'], { cwd: workspace }).stdout, /Summarize proposal queue/);
   assert.match(runNoesis(['proposal', 'list', '--help'], { cwd: workspace }).stdout, /read-only/);
+  assert.match(runNoesis(['proposal', 'summary', '--help'], { cwd: workspace }).stdout, /read-only/);
   assert.match(runNoesis(['proposal', 'update', '--help'], { cwd: workspace }).stdout, /review metadata/);
   assert.match(runNoesis(['--help'], { cwd: workspace }).stdout, /noesis proposal list/);
+  assert.match(runNoesis(['--help'], { cwd: workspace }).stdout, /noesis proposal summary/);
 });
 
 
