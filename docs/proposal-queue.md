@@ -156,10 +156,11 @@ The proposal queue is intentionally small:
 - It does not mutate pamem memory, LoreForge wiki content, skills, or evals.
 - It does not record full transcripts.
 
-The next owner-specific slice can consume `approved` proposals and perform
-subsystem-specific apply/report flows.
+The next owner handoff slice consumes `approved` proposals and writes
+Noesis-owned handoff artifacts under `.noesis/owner-handoffs/<owner>/pending/`.
+It is documented in `docs/owner-handoff.md`. It does not call owner commands,
+create owner PRs, or mark proposals applied.
 
-The first such slice is `noesis eval handoff`, documented in
-`docs/eval-handoff.md`. It consumes approved `eval_proposal` artifacts and
-writes a Noesis report for eval-owner action without creating eval files or
+`noesis eval handoff`, documented in `docs/eval-handoff.md`, remains the
+eval-specific report shape for eval-owner action without creating eval files or
 marking the proposal applied.

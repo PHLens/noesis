@@ -66,6 +66,7 @@ Implemented:
 - `noesis route` for high-level event-to-proposal orchestration over the existing gates
 - `noesis promote check` and `noesis promote plan` for checked, proposal-only promote flow
 - `noesis proposal list`, `noesis proposal summary`, `noesis proposal show`, and `noesis proposal update` for proposal queue review metadata
+- `noesis owner handoff` for approved proposal handoff artifacts across owner lanes
 - `noesis eval handoff` for approved eval-proposal owner handoff reports
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
@@ -158,6 +159,7 @@ noesis proposal list [--workspace <path>] [--dir .noesis/proposals] [--json]
 noesis proposal summary [--workspace <path>] [--dir .noesis/proposals] [--stale-days 7] [--json]
 noesis proposal show <proposal-id-or-path> [--workspace <path>] [--json]
 noesis proposal update <proposal-id-or-path> --status approved [--reviewer <name>] [--note <text>] [--json]
+noesis owner handoff <proposal-id-or-path> [--workspace <path>] [--out .noesis/owner-handoffs] [--json]
 noesis eval handoff <proposal-id-or-path> [--workspace <path>] [--out .noesis/reports/eval-handoffs] [--json]
 noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
 noesis skill inspect <name> [--source <path>] [--json]
@@ -255,6 +257,12 @@ statuses such as `approved`, `rejected`, or `superseded`. It writes only the
 proposal JSON file and preserves `outcome.status=not_applied`; owner apply flows
 remain outside Noesis. See `docs/proposal-queue.md`.
 
+`noesis owner handoff` consumes an approved proposal and writes a generic
+Noesis-owned handoff artifact under `.noesis/owner-handoffs/<owner>/pending/`.
+It does not call pamem, LoreForge, skill-manager, or eval commands; it only
+packages compact proposal context for the owner lane. See
+`docs/owner-handoff.md`.
+
 `noesis eval handoff` consumes an approved `eval_proposal` and writes a
 Noesis-owned handoff report under `.noesis/reports/eval-handoffs/`. It does not
 create eval files, run evals, update proposals, or apply owner changes. See
@@ -278,6 +286,7 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `lib/event.mjs`: learning-event schema and read-only intake check
 - `lib/promote.mjs`: promote-request schema, read-only gate checks, and proposal-only plan artifacts
 - `lib/proposal.mjs`: proposal queue list/show/update review metadata CLI
+- `lib/owner-handoff.mjs`: generic approved-proposal owner handoff CLI
 - `lib/eval-handoff.mjs`: approved eval-proposal handoff report CLI
 - `docs/architecture.md`: current system boundary
 - `docs/entry-skill-workflow.md`: entry-skill and first promote/gate workflow
@@ -286,6 +295,7 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `docs/manifest-contract.md`: `.noesis/config.toml` and component contract
 - `docs/promote-request-schema.md`: promote-request schema and check report
 - `docs/proposal-queue.md`: proposal queue status and review CLI contract
+- `docs/owner-handoff.md`: approved proposal owner-lane handoff contract
 - `docs/eval-handoff.md`: approved eval-proposal handoff report contract
 - `examples/noesis-config.example.toml`: example Noesis bootstrap manifest
 - `examples/learning-event.example.json`: example learning-event artifact
