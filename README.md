@@ -186,14 +186,14 @@ For a source checkout workflow, pass local component roots explicitly:
 
 ```bash
 noesis setup --workspace <workspace> \
-  --profile wiki \
+  --profile researcher \
   --component pamem=/path/to/pamem \
   --component loreforge=/path/to/LoreForge \
   --loreforge-wiki /path/to/wiki \
   --loreforge-domain research
 ```
 
-When pamem is enabled, `--profile <onboarding|coder|reviewer|researcher|wiki>`
+When pamem is enabled, `--profile <onboarding|coder|reviewer|researcher>`
 is required so setup does not silently create an onboarding/default memory
 binding. Use `--pamem-runtime cli|slock`, `--agent-id`, `--memory-repo`,
 `--git-author-name`, and `--git-author-email` to pass the corresponding
