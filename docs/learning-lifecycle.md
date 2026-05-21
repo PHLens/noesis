@@ -119,6 +119,7 @@ The first queue CLI is:
 
 ```bash
 noesis proposal list
+noesis proposal summary
 noesis proposal show <proposal-id-or-path>
 noesis proposal update <proposal-id-or-path> --status approved
 ```

@@ -202,11 +202,13 @@ noesis event promote .noesis/events/<id>.json --out .noesis/promote-requests/
 noesis promote check .noesis/promote-requests/<id>.json
 noesis promote plan .noesis/promote-requests/<id>.json --out .noesis/proposals/
 noesis proposal list
+noesis proposal summary
 noesis proposal show <proposal-id-or-path>
 noesis proposal update <proposal-id-or-path> --status approved
 ```
 
 `check` should be read-only. `plan` should write proposal artifacts only.
+`proposal list`, `proposal summary`, and `proposal show` should be read-only.
 `proposal update` should write only proposal review metadata.
 
 ## Open Design Questions

@@ -14,16 +14,32 @@ review metadata on those artifacts.
 
 ```bash
 noesis proposal list [--workspace <path>] [--dir <dir>] [--status <status>] [--json]
+noesis proposal summary [--workspace <path>] [--dir <dir>] [--stale-days <days>] [--json]
 noesis proposal show <proposal-id-or-path> [--workspace <path>] [--dir <dir>] [--json]
 noesis proposal update <proposal-id-or-path> --status <status> [--reviewer <name>] [--note <text>] [--json]
 ```
 
-`list` and `show` are read-only. `update` writes only the selected proposal JSON
-artifact's review metadata. `update` is limited to the configured proposal
-queue directory.
+`list`, `summary`, and `show` are read-only. `update` writes only the selected
+proposal JSON artifact's review metadata. `update` is limited to the configured
+proposal queue directory.
 
 None of these commands apply memory, wiki, skill, or eval changes. Owner apply
 remains a later subsystem-specific workflow.
+
+## Review Summary
+
+`noesis proposal summary` provides a read-only queue dashboard. It aggregates:
+
+- proposal counts by review status;
+- target owner, target surface, proposal type, and risk distribution;
+- invalid JSON artifacts;
+- pending high-risk proposals;
+- stale pending proposals, using `--stale-days` with a default of 7;
+- approved proposals that still need owner handoff.
+
+It reports `downstream_execution=not-run` and `writes=[]`. A warning summary is
+not an apply signal; it only tells reviewers which proposal artifacts need
+attention.
 
 ## Artifact Statuses
 
@@ -94,6 +110,35 @@ The command preserves the proposal-only boundary:
 }
 ```
 
+`summary --json` returns:
+
+```json
+{
+  "command": "proposal summary",
+  "status": "warning",
+  "schema_version": "0.1",
+  "proposal_dir": "/path/to/.noesis/proposals",
+  "generated_at": "2026-05-19T09:00:00.000Z",
+  "stale_after_days": 7,
+  "summary": {
+    "proposal_count": 2,
+    "valid_count": 2,
+    "invalid_count": 0,
+    "by_status": {
+      "approved": 1,
+      "pending_review": 1
+    },
+    "pending_review_count": 1,
+    "approved_count": 1,
+    "warning_count": 1,
+    "error_count": 0
+  },
+  "downstream_execution": "not-run",
+  "writes": [],
+  "warnings": []
+}
+```
+
 `show --json` returns the selected proposal and reports `writes: []`.
 
 `update --json` returns the updated proposal and reports `writes` containing
@@ -105,6 +150,8 @@ The proposal queue is intentionally small:
 
 - It does not create promote requests.
 - It does not generate proposal content; `noesis promote plan` owns that.
+- It does not route learning events; `noesis event promote` owns event-to-request
+  bridging.
 - It does not apply approved proposals.
 - It does not mutate pamem memory, LoreForge wiki content, skills, or evals.
 - It does not record full transcripts.
