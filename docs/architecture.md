@@ -174,7 +174,7 @@ Supported source resolution:
 
 - managed package source under `skills/`, searched first
 - external compatibility source under `~/skills`
-- explicit `--source <path>` under either supported root
+- explicit `--source <path>` to any local skill directory containing `SKILL.md`
 
 Supported capability operations:
 
