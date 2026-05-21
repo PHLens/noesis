@@ -98,7 +98,7 @@ Owner: `pamem`
 
 Noesis may expect:
 
-- `pamem onboard` or equivalent intentional profile/runtime binding during
+- `pamem setup` or equivalent component-facing profile/runtime binding during
   umbrella setup;
 - `pamem install` / `pamem repair` or equivalent bootstrap refresh after a
   binding exists;

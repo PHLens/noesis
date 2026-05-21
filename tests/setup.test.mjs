@@ -57,7 +57,7 @@ if (command === 'install') {
   fs.symlinkSync(path.relative(path.join(workspace, '.codex', 'skills'), path.join(process.cwd(), 'skills', 'memory-rule')), path.join(workspace, '.codex', 'skills', 'memory-rule'));
   process.exit(0);
 }
-if (command === 'onboard') {
+if (command === 'setup') {
   const profileIndex = args.indexOf('--profile');
   const runtimeIndex = args.indexOf('--runtime');
   if (profileIndex === -1 || runtimeIndex === -1) process.exit(3);
@@ -72,6 +72,9 @@ if (command === 'onboard') {
   fs.writeFileSync(path.join(workspace, '.codex', 'hooks.json'), JSON.stringify({ hooks: { SessionStart: [{ matcher: 'startup|resume', hooks: [{ type: 'command', command: '.pamem/scripts/memory-session-start.sh' }] }] } }, null, 2));
   fs.symlinkSync(path.relative(path.join(workspace, '.codex', 'skills'), path.join(process.cwd(), 'skills', 'memory-lint')), path.join(workspace, '.codex', 'skills', 'memory-lint'));
   fs.symlinkSync(path.relative(path.join(workspace, '.codex', 'skills'), path.join(process.cwd(), 'skills', 'memory-rule')), path.join(workspace, '.codex', 'skills', 'memory-rule'));
+  if (args.includes('--json')) {
+    console.log(JSON.stringify({ status: 'ok', command: 'setup', downstream_execution: 'pamem-onboard', profile: args[profileIndex + 1], runtime: args[runtimeIndex + 1] }));
+  }
   process.exit(0);
 }
 if (command === 'status') {
@@ -136,7 +139,7 @@ test('setup bootstraps Noesis skills and local owner components', (t) => {
   const config = fs.readFileSync(path.join(workspace, '.noesis', 'config.toml'), 'utf8');
   assert.match(config, /component_source = ".*pamem/);
   assert.match(config, /init_command = ".*pamem\.mjs/);
-  assert.equal(config.includes("onboard ${workspace} --profile 'coder' --runtime 'cli'"), true);
+  assert.equal(config.includes("setup ${workspace} --profile 'coder' --runtime 'cli' --json"), true);
   assert.match(config, /required_entry_skill_source = ".*LoreForge.*skills.*loreforge/);
 });
 
