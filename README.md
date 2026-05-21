@@ -146,7 +146,7 @@ The first implemented command families are bootstrap and skill management:
 
 ```bash
 noesis init [--workspace <path>] [--with pamem,loreforge|none] [--force] [--json]
-noesis setup [--workspace <path>] --profile <role> [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--pamem-runtime cli|slock] [--json]
+noesis setup [--workspace <path>] --profile <role> [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--pamem-runtime cli|slock] [--loreforge-wiki <path>] [--loreforge-domain <name>] [--json]
 noesis doctor [--workspace <path>] [--json]
 noesis config show [--workspace <path>] [--json]
 noesis event check .noesis/events/<id>.json [--json]
@@ -172,8 +172,9 @@ The bootstrap commands are intentionally conservative:
 - `setup` is the user-facing one-step local bootstrap: it runs Noesis init,
   installs required entry skills, wires explicit local pamem/LoreForge
   component sources when provided, calls pamem's component-facing setup wrapper
-  with the requested profile/runtime when pamem is enabled, and finishes with
-  doctor;
+  with the requested profile/runtime when pamem is enabled, optionally calls
+  LoreForge's component-facing setup wrapper when a wiki path and domain are
+  provided, and finishes with doctor;
 - `doctor` is read-only for Noesis-owned state, reports missing downstream readiness as warnings unless the manifest itself is invalid, and can consume JSON from declared `status_command` / `validate_command`;
 - `config show` prints the raw or parsed manifest.
 
@@ -187,7 +188,9 @@ For a source checkout workflow, pass local component roots explicitly:
 noesis setup --workspace <workspace> \
   --profile wiki \
   --component pamem=/path/to/pamem \
-  --component loreforge=/path/to/LoreForge
+  --component loreforge=/path/to/LoreForge \
+  --loreforge-wiki /path/to/wiki \
+  --loreforge-domain research
 ```
 
 When pamem is enabled, `--profile <onboarding|coder|reviewer|researcher|wiki>`
@@ -196,6 +199,12 @@ binding. Use `--pamem-runtime cli|slock`, `--agent-id`, `--memory-repo`,
 `--git-author-name`, and `--git-author-email` to pass the corresponding
 `pamem setup` settings. Use `--with none` or `--with loreforge` when you only
 want Noesis/LoreForge bootstrap without pamem.
+
+When LoreForge is enabled with a local source, setup installs the LoreForge
+entry skill. If `--loreforge-wiki <path>` and `--loreforge-domain <name>` are
+both provided, setup also calls `loreforge setup --wiki <path> --domain <name>
+--json`, keeps `wiki-name=main` as the first-version default, and writes
+LoreForge status/validate commands into the Noesis manifest for doctor.
 
 `noesis event check` is a read-only gate for a learning-event JSON artifact. It
 validates schema, compact source references, case shape, impact metadata,
