@@ -135,6 +135,12 @@ test('doctor is read-only and reports missing downstream readiness as warnings',
   assert.equal(result.status, 0);
   assert.equal(data.status, 'warning');
   assert.equal(data.summary.error_count, 0);
+  assert.equal(data.readiness.status, 'warning');
+  assert.equal(data.readiness.sections.noesis.status, 'ok');
+  assert.equal(data.readiness.sections.entry_skills.status, 'warning');
+  assert.equal(data.readiness.sections.pamem.status, 'disabled');
+  assert.equal(data.readiness.sections.loreforge.status, 'disabled');
+  assert.equal(data.readiness.sections.skill_manager.status, 'warning');
   assert.equal([...before].sort().join(','), [...after].sort().join(','));
   assert.ok(data.checks.find((item) => item.id === 'component.pamem.enabled' && item.message.includes('disabled')));
   assert.ok(data.checks.find((item) => item.id === 'component.loreforge.enabled' && item.message.includes('disabled')));
@@ -189,6 +195,7 @@ test('doctor runs declared read-only component status and validate commands', (t
 test('doctor accepts skill-manager status command envelope', (t) => {
   const workspace = tempWorkspace(t);
   runNoesis(['init', '--workspace', workspace, '--with', 'none'], { cwd: workspace });
+  runNoesis(['skill', 'add', 'heuristic-intake', '--workspace', workspace], { cwd: workspace });
   runNoesis(['skill', 'add', 'noesis-skill-manager', '--workspace', workspace], { cwd: workspace });
 
   const result = runNoesis(['doctor', '--workspace', workspace, '--json'], { cwd: workspace, check: false });
@@ -196,6 +203,10 @@ test('doctor accepts skill-manager status command envelope', (t) => {
 
   assert.equal(result.status, 0);
   assert.equal(data.status, 'ok');
+  assert.equal(data.readiness.status, 'ok');
+  assert.equal(data.readiness.sections.noesis.status, 'ok');
+  assert.equal(data.readiness.sections.entry_skills.status, 'ok');
+  assert.equal(data.readiness.sections.skill_manager.status, 'ok');
   const statusCheck = data.checks.find((item) => item.id === 'component.skill_manager.status');
   assert.equal(statusCheck.status, 'ok');
   assert.equal(statusCheck.envelope.status, 'ok');

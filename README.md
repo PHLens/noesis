@@ -175,7 +175,11 @@ The bootstrap commands are intentionally conservative:
   with the requested profile/runtime when pamem is enabled, optionally calls
   LoreForge's component-facing setup wrapper when a wiki path and domain are
   provided, and finishes with doctor;
-- `doctor` is read-only for Noesis-owned state, reports missing downstream readiness as warnings unless the manifest itself is invalid, and can consume JSON from declared `status_command` / `validate_command`;
+- `doctor` is read-only for Noesis-owned state, reports umbrella readiness
+  across Noesis, entry skills, pamem, LoreForge, and skill-manager, treats
+  missing downstream readiness as warnings unless the manifest itself is
+  invalid, and can consume JSON from declared `status_command` /
+  `validate_command`;
 - `config show` prints the raw or parsed manifest.
 
 They create Noesis-owned bootstrap state only. pamem memory, LoreForge wiki

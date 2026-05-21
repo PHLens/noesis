@@ -173,6 +173,19 @@ It may check:
 - required entry skills are visible;
 - Noesis local state directories exist or can be reported missing.
 
+The JSON report includes both a detailed `checks[]` list and a grouped
+`readiness` summary for umbrella HS health:
+
+- `noesis`: manifest and Noesis-owned local state directories;
+- `entry_skills`: the Noesis entry skill plus required component entry skills;
+- `pamem`: pamem memory owner component readiness;
+- `loreforge`: LoreForge knowledge component readiness;
+- `skill_manager`: Noesis skill-manager readiness.
+
+Disabled components report `status: "disabled"` in their readiness section.
+Missing or failing enabled components report warnings unless the manifest itself
+is invalid.
+
 The component command trust boundary is the manifest. `doctor` executes
 declared `status_command` and `validate_command` values and expects the owner to
 keep those commands read-only. Noesis does not sandbox or rewrite those command
