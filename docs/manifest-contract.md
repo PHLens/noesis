@@ -12,6 +12,7 @@ Noesis owns only its local control-plane state:
 ```text
 .noesis/
   config.toml
+  events/
   promote-requests/
   proposals/
   reports/
@@ -80,6 +81,7 @@ future extension and requires an explicit command or flag.
 
 | Field | Required | Meaning |
 |---|---|---|
+| `events` | yes | Local learning-event directory |
 | `promote_requests` | yes | Local promote-request directory |
 | `proposals` | yes | Local proposal directory |
 | `reports` | yes | Local reports/doctor output directory |
@@ -181,7 +183,7 @@ future extension and requires an explicit command or flag.
 Allowed:
 
 - create `.noesis/config.toml`;
-- create `.noesis/promote-requests/`, `.noesis/proposals/`, and `.noesis/reports/`;
+- create `.noesis/events/`, `.noesis/promote-requests/`, `.noesis/proposals/`, and `.noesis/reports/`;
 - run read-only doctor checks after initialization.
 
 Requires explicit flags or review:

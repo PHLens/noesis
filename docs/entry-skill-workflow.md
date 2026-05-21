@@ -163,7 +163,16 @@ The intake entry-skill slice adds `heuristic-intake`:
 2. draft `.noesis/events/<id>.json` using the learning-event schema;
 3. require `noesis event check`;
 4. avoid full transcripts, raw logs, private data, and owner writes;
-5. leave event-to-promote-request conversion to the router bridge.
+5. leave event-to-promote-request conversion to `noesis event promote`.
+
+The event bridge slice adds `noesis event promote`:
+
+1. rerun `noesis event check` against an explicit learning-event JSON file;
+2. refuse to write when event check errors are present;
+3. map routing hints into promote-request candidate items and requested outputs;
+4. write one promote-request artifact under `.noesis/promote-requests/` or an explicit `--out` directory;
+5. preserve `gate_policy.allow_apply=false`;
+6. never generate proposal artifacts or apply downstream owner changes.
 
 ## Relationship To Existing CLI
 
@@ -189,6 +198,7 @@ noesis config show --workspace <path>
 The first promote/gate command should be additive. Candidate command shape:
 
 ```bash
+noesis event promote .noesis/events/<id>.json --out .noesis/promote-requests/
 noesis promote check .noesis/promote-requests/<id>.json
 noesis promote plan .noesis/promote-requests/<id>.json --out .noesis/proposals/
 noesis proposal list

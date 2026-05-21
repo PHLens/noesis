@@ -237,12 +237,146 @@ test('event check warns for private paths and unresolved routing hints', (t) => 
 });
 
 
+test('event promote writes a promote-request artifact without planning proposals', (t) => {
+  const workspace = tempWorkspace(t);
+  const eventPath = writeEvent(workspace, validEvent(workspace, {
+    event_id: '2026-05-21T02-40-00Z__event-to-promote',
+    kind: 'user_correction',
+    routing_hints: [
+      {
+        candidate_kind: 'memory',
+        target_surface: 'pamem',
+        review_required: true,
+        reason: 'The correction should be reviewed by the memory owner.',
+      },
+      {
+        candidate_kind: 'eval',
+        target_surface: 'evals',
+        review_required: true,
+        reason: 'The same behavior should become a regression check.',
+      },
+    ],
+  }));
+  const before = snapshot(workspace);
+
+  const result = runNoesis(['event', 'promote', eventPath, '--json'], { cwd: workspace });
+  const after = snapshot(workspace);
+  const data = JSON.parse(result.stdout);
+  const request = JSON.parse(fs.readFileSync(data.request_path, 'utf8'));
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.downstream_execution, 'not-run');
+  assert.equal(data.summary.request_count, 1);
+  assert.deepEqual(data.writes.sort(), [path.dirname(data.request_path), data.request_path].sort());
+  assert.deepEqual(after.filter((entry) => !before.includes(entry)).sort(), [
+    'd:.noesis/promote-requests',
+    `f:${path.relative(workspace, data.request_path)}`,
+  ].sort());
+  assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'proposals')), false);
+  assert.equal(request.schema_version, '0.1');
+  assert.equal(request.request_id, '2026-05-21T02-40-00Z__event-to-promote__promote');
+  assert.equal(request.trigger.kind, 'user_correction');
+  assert.equal(request.candidate_items.length, 2);
+  assert.equal(request.candidate_items[0].candidate_kind, 'memory');
+  assert.equal(request.candidate_items[0].target_surface, 'pamem');
+  assert.equal(request.candidate_items[0].risk, 'medium');
+  assert.equal(request.requested_outputs[0].kind, 'memory_proposal');
+  assert.equal(request.requested_outputs[0].target_owner, 'pamem');
+  assert.equal(request.requested_outputs[1].kind, 'eval_proposal');
+  assert.equal(request.requested_outputs[1].target_owner, 'evals');
+  assert.equal(request.gate_policy.allow_apply, false);
+  assert.equal(request.gate_policy.review_required, true);
+  assert.equal(request.expected_regression.kind, 'manual_review');
+
+  const check = runNoesis(['promote', 'check', data.request_path, '--json'], { cwd: workspace });
+  assert.equal(JSON.parse(check.stdout).summary.error_count, 0);
+});
+
+
+test('event promote defaults to request workspace for output', (t) => {
+  const workspace = tempWorkspace(t);
+  const cwd = tempWorkspace(t);
+  const eventPath = writeEvent(workspace, validEvent(workspace));
+
+  const result = runNoesis(['event', 'promote', eventPath, '--json'], { cwd });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.output_dir, path.join(workspace, '.noesis', 'promote-requests'));
+  assert.equal(data.request_path.startsWith(data.output_dir), true);
+  assert.equal(fs.existsSync(path.join(cwd, '.noesis')), false);
+});
+
+
+test('event promote writes nothing when event check has errors', (t) => {
+  const workspace = tempWorkspace(t);
+  const eventPath = writeEvent(workspace, {
+    schema_version: '0.1',
+    event_id: 'bad-event',
+  });
+  const outDir = path.join(workspace, '.noesis', 'promote-requests');
+
+  const result = runNoesis(['event', 'promote', eventPath, '--out', outDir, '--json'], { cwd: workspace, check: false });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(data.status, 'failed');
+  assert.equal(data.summary.request_count, 0);
+  assert.deepEqual(data.writes, []);
+  assert.equal(fs.existsSync(outDir), false);
+});
+
+
+test('event promote warns but writes when routing hints are unresolved', (t) => {
+  const workspace = tempWorkspace(t);
+  const eventPath = writeEvent(workspace, validEvent(workspace, {
+    routing_hints: undefined,
+  }));
+
+  const event = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
+  delete event.routing_hints;
+  fs.writeFileSync(eventPath, `${JSON.stringify(event, null, 2)}\n`);
+
+  const result = runNoesis(['event', 'promote', eventPath, '--json'], { cwd: workspace });
+  const data = JSON.parse(result.stdout);
+  const request = JSON.parse(fs.readFileSync(data.request_path, 'utf8'));
+
+  assert.equal(result.status, 0);
+  assert.equal(data.status, 'warning');
+  assert.equal(data.summary.error_count, 0);
+  assert.equal(request.candidate_items[0].candidate_kind, 'unknown');
+  assert.equal(request.candidate_items[0].target_surface, 'unknown');
+  assert.equal(request.requested_outputs[0].kind, 'mixed');
+  assert.equal(request.requested_outputs[0].target_owner, 'unknown');
+});
+
+
+test('event promote refuses to overwrite existing requests unless forced', (t) => {
+  const workspace = tempWorkspace(t);
+  const eventPath = writeEvent(workspace, validEvent(workspace));
+
+  runNoesis(['event', 'promote', eventPath], { cwd: workspace });
+  const rejected = runNoesis(['event', 'promote', eventPath], { cwd: workspace, check: false });
+  assert.equal(rejected.status, 1);
+  assert.match(rejected.stderr, /promote request already exists/);
+
+  const forced = runNoesis(['event', 'promote', eventPath, '--force', '--json'], { cwd: workspace });
+  const data = JSON.parse(forced.stdout);
+  assert.equal(data.status, 'ok');
+  assert.ok(data.actions.find((action) => action.action === 'wrote' && action.path === data.request_path));
+});
+
+
 test('event command help is available', (t) => {
   const workspace = tempWorkspace(t);
 
   assert.match(runNoesis(['help', 'event'], { cwd: workspace }).stdout, /Usage: noesis event/);
   assert.match(runNoesis(['help', 'event', 'check'], { cwd: workspace }).stdout, /Usage: noesis event check/);
+  assert.match(runNoesis(['help', 'event', 'promote'], { cwd: workspace }).stdout, /Usage: noesis event promote/);
   assert.match(runNoesis(['event', 'help', 'check'], { cwd: workspace }).stdout, /Usage: noesis event check/);
+  assert.match(runNoesis(['event', 'help', 'promote'], { cwd: workspace }).stdout, /Usage: noesis event promote/);
   assert.match(runNoesis(['event', 'check', '--help'], { cwd: workspace }).stdout, /Read-only gate/);
+  assert.match(runNoesis(['event', 'promote', '--help'], { cwd: workspace }).stdout, /promote-request/);
   assert.match(runNoesis(['--help'], { cwd: workspace }).stdout, /noesis event check/);
+  assert.match(runNoesis(['--help'], { cwd: workspace }).stdout, /noesis event promote/);
 });

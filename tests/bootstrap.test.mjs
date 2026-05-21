@@ -51,6 +51,7 @@ test('init creates only Noesis-owned bootstrap state and manifest', (t) => {
   assert.equal(data.status, 'ok');
   assert.equal(data.workspace, workspace);
   assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'config.toml')), true);
+  assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'events')), true);
   assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'promote-requests')), true);
   assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'proposals')), true);
   assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'reports')), true);
@@ -120,6 +121,7 @@ test('config show emits raw TOML or parsed JSON', (t) => {
   const json = runNoesis(['config', 'show', '--workspace', workspace, '--json'], { cwd: workspace });
   const data = JSON.parse(json.stdout);
   assert.equal(data.manifest.noesis.schema_version, '0.1');
+  assert.equal(data.manifest.paths.events, '.noesis/events');
   assert.equal(data.manifest.paths.proposals, '.noesis/proposals');
 });
 

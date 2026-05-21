@@ -4,7 +4,7 @@ Learning events are the first intake artifact in the Noesis heuristic-system
 loop. They capture compact evidence that a task may contain reusable behavior,
 without deciding the final owner artifact.
 
-The first command is:
+The intake check command is:
 
 ```bash
 noesis event check .noesis/events/<id>.json
@@ -15,6 +15,19 @@ noesis event check .noesis/events/<id>.json --json
 case fields, impact metadata, optional routing hints, and transcript-retention
 hazards. It does not route, write promote requests, write proposals, call
 downstream owner commands, mutate memory, stage wiki content, or change skills.
+
+The bridge command is:
+
+```bash
+noesis event promote .noesis/events/<id>.json
+noesis event promote .noesis/events/<id>.json --json
+```
+
+`promote` reruns the read-only event check. If the event has check errors, it
+writes nothing and exits `1`. If the event has no errors, it writes one
+promote-request JSON artifact under `.noesis/promote-requests/` or an explicit
+`--out` directory. It does not run proposal planning, update proposal review
+state, call owner commands, mutate memory, stage wiki content, or change skills.
 
 ## Artifact Path
 
@@ -191,7 +204,10 @@ Allowed `target_surface` values:
 - `unknown`
 
 Missing, empty, or unknown routing hints produce warnings, not errors. This lets
-intake happen before routing is fully known.
+intake happen before routing is fully known. `event promote` can still produce a
+promote request from unresolved hints; the generated request keeps the unknown
+candidate or owner surface so `noesis promote check` and review can resolve it
+before planning or owner handoff.
 
 ## Check Report
 
@@ -219,6 +235,53 @@ JSON output has this shape:
 Exit status is `1` when errors are present and `0` otherwise. Warnings indicate
 work that should be clarified before converting the event to a promote request.
 
+## Promote Bridge
+
+`noesis event promote` converts a checked learning event into the existing
+promote-request schema. The bridge is deterministic and proposal-only:
+
+- event `source_refs` become request `source_refs`;
+- each routing hint becomes one `candidate_items[]` entry;
+- `impact.severity` maps to candidate `risk`;
+- known candidate kinds map to requested proposal outputs:
+  - `memory` -> `memory_proposal` / `pamem`;
+  - `wiki` -> `wiki_proposal` / `LoreForge`;
+  - `skill` -> `skill_proposal` / `skill-manager`;
+  - `eval` -> `eval_proposal` / `evals`;
+  - `compression` -> `compression_proposal` / `Noesis`;
+  - `noop` -> `noop` / `none`;
+  - unresolved or mixed candidates -> `mixed` / `unknown`;
+- generated `gate_policy` is always `mode=proposal_only`,
+  `allow_apply=false`, and `review_required=true`.
+
+JSON output has this shape:
+
+```json
+{
+  "command": "event promote",
+  "status": "ok",
+  "event_path": "/path/to/event.json",
+  "event_id": "2026-05-19T09-30-00Z__learning-event",
+  "output_dir": "/path/to/workspace/.noesis/promote-requests",
+  "request_path": "/path/to/workspace/.noesis/promote-requests/2026-05-19T09-30-00Z__learning-event__promote.json",
+  "request_id": "2026-05-19T09-30-00Z__learning-event__promote",
+  "downstream_execution": "not-run",
+  "writes": ["/path/to/workspace/.noesis/promote-requests", "/path/to/request.json"],
+  "summary": {
+    "error_count": 0,
+    "warning_count": 0,
+    "info_count": 1,
+    "request_count": 1
+  },
+  "event_check_report": {},
+  "checks": []
+}
+```
+
+Exit status is `1` only when the event check has errors or the target request
+already exists without `--force`. Warnings preserve unresolved routing for
+review.
+
 ## Boundary
 
 Learning-event check is the intake gate. It does not:
@@ -230,5 +293,9 @@ Learning-event check is the intake gate. It does not:
 - apply memory, wiki, skill, or eval changes;
 - retain full transcripts or raw logs.
 
-Task #12 will define the bridge from checked events to promote-request
-artifacts.
+Learning-event promote is the bridge to promote-request artifacts. It does not:
+
+- generate proposal artifacts;
+- update proposal review state;
+- apply memory, wiki, skill, or eval changes;
+- call downstream owner commands.
