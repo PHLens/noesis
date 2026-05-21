@@ -39,6 +39,7 @@ The first intake command is:
 ```bash
 noesis event check .noesis/events/<id>.json
 noesis event promote .noesis/events/<id>.json
+noesis route .noesis/events/<id>.json
 ```
 
 `event check` validates the event but does not route it, create a promote
@@ -49,6 +50,11 @@ complete.
 `event promote` reruns the event check and writes one promote-request artifact
 only. It maps routing hints into candidate items and requested outputs, but
 does not plan proposals or apply downstream owner changes.
+
+`route` is the high-level command for the common path. It composes the
+same gates in sequence: event check/promote, then promote check/plan. This
+reduces operator steps without merging the gate semantics. If event promotion
+or promote planning has errors, the next step is not run.
 
 See `docs/learning-event-schema.md`.
 

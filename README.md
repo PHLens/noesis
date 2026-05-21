@@ -63,6 +63,7 @@ Implemented:
 - `noesis init`, `noesis doctor`, and `noesis config show` for conservative Noesis-owned bootstrap state
 - `noesis event check` for read-only learning-event intake validation
 - `noesis event promote` for event-to-promote-request bridge artifacts
+- `noesis route` for high-level event-to-proposal orchestration over the existing gates
 - `noesis promote check` and `noesis promote plan` for checked, proposal-only promote flow
 - `noesis proposal list`, `noesis proposal summary`, `noesis proposal show`, and `noesis proposal update` for proposal queue review metadata
 - `noesis eval handoff` for approved eval-proposal owner handoff reports
@@ -149,6 +150,7 @@ noesis doctor [--workspace <path>] [--json]
 noesis config show [--workspace <path>] [--json]
 noesis event check .noesis/events/<id>.json [--json]
 noesis event promote .noesis/events/<id>.json [--out .noesis/promote-requests] [--json]
+noesis route .noesis/events/<id>.json [--request-out .noesis/promote-requests] [--proposal-out .noesis/proposals] [--json]
 noesis promote check .noesis/promote-requests/<id>.json [--json]
 noesis promote plan .noesis/promote-requests/<id>.json [--out .noesis/proposals] [--json]
 noesis proposal list [--workspace <path>] [--dir .noesis/proposals] [--json]
@@ -186,6 +188,13 @@ promote-request artifact under `.noesis/promote-requests/` or an explicit
 outputs, keeps `allow_apply=false`, and does not generate proposals or call
 owner apply flows. See `docs/learning-event-schema.md` and
 `examples/learning-event.example.json`.
+
+`noesis route` is the high-level orchestration command for the common
+event-to-proposal path. It composes the existing gates in order:
+`event check/promote`, then `promote check/plan`. If a gate has errors, later
+steps are not run. Successful route writes only Noesis-owned promote-request
+and proposal artifacts; it does not apply owner changes, mutate memory, stage
+wiki content, or change skills.
 
 `noesis promote check` is a read-only gate for a promote-request JSON artifact.
 It validates schema, short source references, target surface, risk/review

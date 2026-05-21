@@ -26,12 +26,17 @@ After `check` passes, the first proposal-only planner command is:
 ```bash
 noesis promote plan .noesis/promote-requests/<id>.json --out .noesis/proposals/
 noesis promote plan .noesis/promote-requests/<id>.json --json
+noesis route .noesis/events/<id>.json --json
 ```
 
 `plan` reruns `check` first. If check errors are present, it writes nothing and
 exits `1`. If check has only warnings, it may write proposal artifacts and
 returns a warning status so reviewers can resolve the open issues before owner
 application.
+
+For the common path starting from a learning event, `noesis route` runs
+the event bridge and then this planner. It does not bypass `promote check`; it
+only removes manual command chaining.
 
 ## Artifact Path
 
