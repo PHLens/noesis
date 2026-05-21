@@ -34,10 +34,9 @@ function runNoesis(args, { cwd, check = true, env = {} }) {
 
 
 function commandExists(command) {
-  const result = spawnSync(process.platform === 'win32' ? 'where' : 'command', process.platform === 'win32' ? [command] : ['-v', command], {
-    shell: process.platform !== 'win32',
-    stdio: 'ignore',
-  });
+  const result = process.platform === 'win32'
+    ? spawnSync('where', [command], { stdio: 'ignore' })
+    : spawnSync('sh', ['-c', `command -v ${command}`], { stdio: 'ignore' });
   return result.status === 0;
 }
 
@@ -61,8 +60,6 @@ test('init creates only Noesis-owned bootstrap state and manifest', (t) => {
   assert.equal(data.manifest.components.pamem.enabled, true);
   assert.equal(data.manifest.components.loreforge.enabled, commandExists('loreforge'));
   assert.equal(data.manifest.components.loreforge.required_cli, 'loreforge');
-  assert.equal(data.manifest.components.loreforge.status_command, 'loreforge status --json');
-  assert.equal(data.manifest.components.loreforge.validate_command, 'loreforge validate --all-domains --json');
   assert.equal(data.manifest.components.loreforge.init_command, 'loreforge init --wiki ${workspace} --domain ai-research --json');
   assert.equal(data.manifest.components.skill_manager.enabled, true);
 });
@@ -91,8 +88,7 @@ test('loreforge component stays declared but disabled when CLI is unavailable', 
 
   assert.equal(data.manifest.components.loreforge.enabled, false);
   assert.equal(data.manifest.components.loreforge.required_cli, 'loreforge');
-  assert.equal(data.manifest.components.loreforge.status_command, 'loreforge status --json');
-  assert.equal(data.manifest.components.loreforge.validate_command, 'loreforge validate --all-domains --json');
+  assert.equal(data.manifest.components.loreforge.config_path, undefined);
 });
 
 
@@ -210,6 +206,7 @@ test('bootstrap command help is available', (t) => {
   const workspace = tempWorkspace(t);
 
   assert.match(runNoesis(['help', 'init'], { cwd: workspace }).stdout, /Usage: noesis init/);
+  assert.match(runNoesis(['help', 'setup'], { cwd: workspace }).stdout, /Usage: noesis setup/);
   assert.match(runNoesis(['help', 'doctor'], { cwd: workspace }).stdout, /Usage: noesis doctor/);
   assert.match(runNoesis(['help', 'config'], { cwd: workspace }).stdout, /Usage: noesis config show/);
   assert.match(runNoesis(['--help'], { cwd: workspace }).stdout, /noesis doctor --workspace/);
