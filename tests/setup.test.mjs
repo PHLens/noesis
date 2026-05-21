@@ -115,9 +115,14 @@ function value(name) {
 if (command === 'setup') {
   const wiki = value('--wiki');
   const domain = value('--domain');
+  const registry = value('--registry');
   if (!wiki || !domain) process.exit(3);
   fs.mkdirSync(path.join(wiki, 'Domains', domain), { recursive: true });
   fs.writeFileSync(path.join(wiki, 'Domains', domain, 'index.md'), '# Domain\\n');
+  if (registry) {
+    fs.mkdirSync(path.dirname(registry), { recursive: true });
+    fs.writeFileSync(registry, 'default = "main"\\n');
+  }
   console.log(JSON.stringify({
     component: 'loreforge',
     operation: 'setup',
@@ -203,12 +208,48 @@ test('setup can run LoreForge owner setup when wiki and domain are provided', (t
   assert.equal(data.doctor.status, 'ok');
   assert.equal(fs.realpathSync(path.join(workspace, '.codex', 'skills', 'loreforge')), path.join(loreforge, 'skills', 'loreforge'));
   assert.equal(fs.existsSync(path.join(wiki, 'Domains', 'research', 'index.md')), true);
+  assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'loreforge', 'registry.toml')), true);
+  assert.equal(fs.existsSync(path.join(home, '.config', 'loreforge', 'registry.toml')), false);
 
   const config = fs.readFileSync(path.join(workspace, '.noesis', 'config.toml'), 'utf8');
-  assert.equal(config.includes(`setup --wiki '${wiki}' --domain 'research' --json`), true);
-  assert.equal(config.includes("status --wiki-name 'main' --json"), true);
-  assert.equal(config.includes(`validate --wiki '${wiki}' --all-domains --json`), true);
+  const registry = path.join(workspace, '.noesis', 'loreforge', 'registry.toml');
+  assert.equal(config.includes(`setup --wiki '${wiki}' --domain 'research' --registry '${registry}' --json`), true);
+  assert.equal(config.includes(`status --registry '${registry}' --wiki-name 'main' --json`), true);
+  assert.equal(config.includes(`validate --registry '${registry}' --wiki '${wiki}' --all-domains --json`), true);
   assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'loreforge'), true);
+});
+
+
+test('setup can use an explicit LoreForge registry path', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  const wiki = path.join(root, 'wiki');
+  const registry = path.join(root, 'registries', 'loreforge.toml');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  const loreforge = makeLoreForgeComponent(root);
+
+  const result = runNoesis([
+    'setup',
+    '--workspace', workspace,
+    '--with', 'loreforge',
+    '--component', `loreforge=${loreforge}`,
+    '--loreforge-wiki', wiki,
+    '--loreforge-domain', 'research',
+    '--loreforge-registry', registry,
+    '--json',
+  ], { cwd: root, home });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(fs.existsSync(registry), true);
+  assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'loreforge', 'registry.toml')), false);
+
+  const config = fs.readFileSync(path.join(workspace, '.noesis', 'config.toml'), 'utf8');
+  assert.equal(config.includes(`setup --wiki '${wiki}' --domain 'research' --registry '${registry}' --json`), true);
+  assert.equal(config.includes(`status --registry '${registry}' --wiki-name 'main' --json`), true);
+  assert.equal(config.includes(`validate --registry '${registry}' --wiki '${wiki}' --all-domains --json`), true);
 });
 
 

@@ -146,7 +146,7 @@ The first implemented command families are bootstrap and skill management:
 
 ```bash
 noesis init [--workspace <path>] [--with pamem,loreforge|none] [--force] [--json]
-noesis setup [--workspace <path>] --profile <role> [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--pamem-runtime cli|slock] [--loreforge-wiki <path>] [--loreforge-domain <name>] [--json]
+noesis setup [--workspace <path>] --profile <role> [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--pamem-runtime cli|slock] [--loreforge-wiki <path>] [--loreforge-domain <name>] [--loreforge-registry <path>] [--json]
 noesis doctor [--workspace <path>] [--json]
 noesis config show [--workspace <path>] [--json]
 noesis event check .noesis/events/<id>.json [--json]
@@ -203,8 +203,12 @@ want Noesis/LoreForge bootstrap without pamem.
 When LoreForge is enabled with a local source, setup installs the LoreForge
 entry skill. If `--loreforge-wiki <path>` and `--loreforge-domain <name>` are
 both provided, setup also calls `loreforge setup --wiki <path> --domain <name>
---json`, keeps `wiki-name=main` as the first-version default, and writes
-LoreForge status/validate commands into the Noesis manifest for doctor.
+--registry <path> --json`, keeps `wiki-name=main` as the first-version default,
+and writes LoreForge status/validate commands into the Noesis manifest for
+doctor. By default the registry is isolated under
+`.noesis/loreforge/registry.toml` in the target workspace so temporary setup and
+smoke tests do not write the user's machine-local LoreForge registry; pass
+`--loreforge-registry <path>` when setup should use a specific registry file.
 
 `noesis event check` is a read-only gate for a learning-event JSON artifact. It
 validates schema, compact source references, case shape, impact metadata,

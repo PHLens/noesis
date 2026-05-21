@@ -127,11 +127,14 @@ The exact command names are left to the LoreForge owner contract. Generated
 manifests use the stable `loreforge init` proposal-only CLI surface when that
 CLI is discoverable. `noesis setup` may replace that with the write-capable
 `loreforge setup` owner command when the user provides an explicit LoreForge
-wiki path and domain. If the CLI is not available, Noesis still declares the
-component but leaves it disabled. Noesis consumes declared component commands
-from the manifest and leaves wiki mechanics to LoreForge. Read-only
-`status_command` and `validate_command` are added only after setup has enough
-LoreForge information to check the configured wiki.
+wiki path and domain. The setup-generated LoreForge commands use a
+workspace-local `.noesis/loreforge/registry.toml` by default, or an explicit
+`--loreforge-registry` path, so component bootstrap does not assume or mutate
+the user's default machine-local LoreForge registry. If the CLI is not
+available, Noesis still declares the component but leaves it disabled. Noesis
+consumes declared component commands from the manifest and leaves wiki mechanics
+to LoreForge. Read-only `status_command` and `validate_command` are added only
+after setup has enough LoreForge information to check the configured wiki.
 
 Out of scope for Noesis:
 
