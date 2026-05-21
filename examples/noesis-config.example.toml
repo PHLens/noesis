@@ -27,8 +27,8 @@ required_version = "0.1.0"
 required_entry_skill = "loreforge"
 init_command = "loreforge init --wiki ${workspace} --domain ai-research --json"
 # When umbrella setup has an explicit LoreForge wiki/domain, Noesis rewrites
-# init_command to `loreforge setup ... --json` and adds read-only
-# status/validate commands for doctor.
+# init_command to `loreforge setup ... --registry <path> --json` and adds
+# registry-scoped read-only status/validate commands for doctor.
 
 [components.skill_manager]
 enabled = true
