@@ -171,7 +171,7 @@ The bootstrap commands are intentionally conservative:
 - `init` creates `.noesis/config.toml` and Noesis-owned local state directories;
 - `setup` is the user-facing one-step local bootstrap: it runs Noesis init,
   installs required entry skills, wires explicit local pamem/LoreForge
-  component sources when provided, intentionally onboards the pamem workspace
+  component sources when provided, calls pamem's component-facing setup wrapper
   with the requested profile/runtime when pamem is enabled, and finishes with
   doctor;
 - `doctor` is read-only for Noesis-owned state, reports missing downstream readiness as warnings unless the manifest itself is invalid, and can consume JSON from declared `status_command` / `validate_command`;
@@ -194,7 +194,7 @@ When pamem is enabled, `--profile <onboarding|coder|reviewer|researcher|wiki>`
 is required so setup does not silently create an onboarding/default memory
 binding. Use `--pamem-runtime cli|slock`, `--agent-id`, `--memory-repo`,
 `--git-author-name`, and `--git-author-email` to pass the corresponding
-`pamem onboard` settings. Use `--with none` or `--with loreforge` when you only
+`pamem setup` settings. Use `--with none` or `--with loreforge` when you only
 want Noesis/LoreForge bootstrap without pamem.
 
 `noesis event check` is a read-only gate for a learning-event JSON artifact. It
