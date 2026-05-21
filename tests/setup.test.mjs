@@ -57,6 +57,23 @@ if (command === 'install') {
   fs.symlinkSync(path.relative(path.join(workspace, '.codex', 'skills'), path.join(process.cwd(), 'skills', 'memory-rule')), path.join(workspace, '.codex', 'skills', 'memory-rule'));
   process.exit(0);
 }
+if (command === 'onboard') {
+  const profileIndex = args.indexOf('--profile');
+  const runtimeIndex = args.indexOf('--runtime');
+  if (profileIndex === -1 || runtimeIndex === -1) process.exit(3);
+  fs.mkdirSync(path.join(workspace, '.codex', 'skills'), { recursive: true });
+  fs.mkdirSync(path.join(workspace, '.pamem'), { recursive: true });
+  fs.mkdirSync(path.join(workspace, 'notes'), { recursive: true });
+  fs.writeFileSync(path.join(workspace, '.pamem', 'config.toml'), 'default_profile = "' + args[profileIndex + 1] + '"\\n[runtime]\\nmode = "' + args[runtimeIndex + 1] + '"\\n');
+  fs.writeFileSync(path.join(workspace, 'MEMORY.md'), '# Memory\\n');
+  fs.writeFileSync(path.join(workspace, 'notes', 'current-task.md'), '# Current\\n');
+  fs.writeFileSync(path.join(workspace, 'notes', 'work-log.md'), '# Work\\n');
+  fs.writeFileSync(path.join(workspace, '.codex', 'config.toml'), '[features]\\nhooks = true\\n');
+  fs.writeFileSync(path.join(workspace, '.codex', 'hooks.json'), JSON.stringify({ hooks: { SessionStart: [{ matcher: 'startup|resume', hooks: [{ type: 'command', command: '.pamem/scripts/memory-session-start.sh' }] }] } }, null, 2));
+  fs.symlinkSync(path.relative(path.join(workspace, '.codex', 'skills'), path.join(process.cwd(), 'skills', 'memory-lint')), path.join(workspace, '.codex', 'skills', 'memory-lint'));
+  fs.symlinkSync(path.relative(path.join(workspace, '.codex', 'skills'), path.join(process.cwd(), 'skills', 'memory-rule')), path.join(workspace, '.codex', 'skills', 'memory-rule'));
+  process.exit(0);
+}
 if (command === 'status') {
   console.log(JSON.stringify({ status: 'ok', root: workspace, runtime: 'cli' }));
   process.exit(0);
@@ -100,6 +117,7 @@ test('setup bootstraps Noesis skills and local owner components', (t) => {
   const result = runNoesis([
     'setup',
     '--workspace', workspace,
+    '--profile', 'coder',
     '--component', `pamem=${pamem}`,
     '--component', `loreforge=${loreforge}`,
     '--json',
@@ -117,7 +135,24 @@ test('setup bootstraps Noesis skills and local owner components', (t) => {
 
   const config = fs.readFileSync(path.join(workspace, '.noesis', 'config.toml'), 'utf8');
   assert.match(config, /component_source = ".*pamem/);
+  assert.match(config, /init_command = ".*pamem\.mjs/);
+  assert.equal(config.includes("onboard ${workspace} --profile 'coder' --runtime 'cli'"), true);
   assert.match(config, /required_entry_skill_source = ".*LoreForge.*skills.*loreforge/);
+});
+
+
+test('setup requires explicit profile when pamem is enabled', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+
+  const result = runNoesis(['setup', '--workspace', workspace, '--json'], { cwd: root, home, check: false });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /setup with pamem requires --profile/);
+  assert.equal(fs.existsSync(path.join(workspace, '.pamem')), false);
 });
 
 
@@ -136,4 +171,16 @@ test('setup can bootstrap only Noesis entry skills', (t) => {
   assert.equal(fs.existsSync(path.join(workspace, '.codex', 'skills', 'heuristic-intake')), true);
   assert.equal(fs.existsSync(path.join(workspace, '.claude', 'skills', 'noesis-skill-manager')), true);
   assert.equal(fs.existsSync(path.join(workspace, '.pamem')), false);
+});
+
+
+test('setup command help is available at command position', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  fs.mkdirSync(home);
+
+  const result = runNoesis(['setup', '--help'], { cwd: root, home });
+
+  assert.match(result.stdout, /Usage: noesis setup/);
+  assert.match(result.stdout, /--profile <role>/);
 });

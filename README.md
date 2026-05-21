@@ -146,7 +146,7 @@ The first implemented command families are bootstrap and skill management:
 
 ```bash
 noesis init [--workspace <path>] [--with pamem,loreforge|none] [--force] [--json]
-noesis setup [--workspace <path>] [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--runtime codex|claude|both] [--json]
+noesis setup [--workspace <path>] --profile <role> [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--pamem-runtime cli|slock] [--json]
 noesis doctor [--workspace <path>] [--json]
 noesis config show [--workspace <path>] [--json]
 noesis event check .noesis/events/<id>.json [--json]
@@ -171,8 +171,9 @@ The bootstrap commands are intentionally conservative:
 - `init` creates `.noesis/config.toml` and Noesis-owned local state directories;
 - `setup` is the user-facing one-step local bootstrap: it runs Noesis init,
   installs required entry skills, wires explicit local pamem/LoreForge
-  component sources when provided, installs the pamem runtime capability, and
-  finishes with doctor;
+  component sources when provided, intentionally onboards the pamem workspace
+  with the requested profile/runtime when pamem is enabled, and finishes with
+  doctor;
 - `doctor` is read-only for Noesis-owned state, reports missing downstream readiness as warnings unless the manifest itself is invalid, and can consume JSON from declared `status_command` / `validate_command`;
 - `config show` prints the raw or parsed manifest.
 
@@ -184,9 +185,17 @@ For a source checkout workflow, pass local component roots explicitly:
 
 ```bash
 noesis setup --workspace <workspace> \
+  --profile wiki \
   --component pamem=/path/to/pamem \
   --component loreforge=/path/to/LoreForge
 ```
+
+When pamem is enabled, `--profile <onboarding|coder|reviewer|researcher|wiki>`
+is required so setup does not silently create an onboarding/default memory
+binding. Use `--pamem-runtime cli|slock`, `--agent-id`, `--memory-repo`,
+`--git-author-name`, and `--git-author-email` to pass the corresponding
+`pamem onboard` settings. Use `--with none` or `--with loreforge` when you only
+want Noesis/LoreForge bootstrap without pamem.
 
 `noesis event check` is a read-only gate for a learning-event JSON artifact. It
 validates schema, compact source references, case shape, impact metadata,

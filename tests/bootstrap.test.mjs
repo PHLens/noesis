@@ -61,6 +61,7 @@ test('init creates only Noesis-owned bootstrap state and manifest', (t) => {
   assert.equal(data.manifest.components.loreforge.enabled, commandExists('loreforge'));
   assert.equal(data.manifest.components.loreforge.required_cli, 'loreforge');
   assert.equal(data.manifest.components.loreforge.init_command, 'loreforge init --wiki ${workspace} --domain ai-research --json');
+  assert.equal(data.manifest.components.pamem.init_command, '');
   assert.equal(data.manifest.components.skill_manager.enabled, true);
 });
 
@@ -207,6 +208,7 @@ test('bootstrap command help is available', (t) => {
 
   assert.match(runNoesis(['help', 'init'], { cwd: workspace }).stdout, /Usage: noesis init/);
   assert.match(runNoesis(['help', 'setup'], { cwd: workspace }).stdout, /Usage: noesis setup/);
+  assert.match(runNoesis(['setup', '--help'], { cwd: workspace }).stdout, /--profile <role>/);
   assert.match(runNoesis(['help', 'doctor'], { cwd: workspace }).stdout, /Usage: noesis doctor/);
   assert.match(runNoesis(['help', 'config'], { cwd: workspace }).stdout, /Usage: noesis config show/);
   assert.match(runNoesis(['--help'], { cwd: workspace }).stdout, /noesis doctor --workspace/);

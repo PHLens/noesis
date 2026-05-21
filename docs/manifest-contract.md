@@ -98,7 +98,10 @@ Owner: `pamem`
 
 Noesis may expect:
 
-- `pamem install` or equivalent initialization;
+- `pamem onboard` or equivalent intentional profile/runtime binding during
+  umbrella setup;
+- `pamem install` / `pamem repair` or equivalent bootstrap refresh after a
+  binding exists;
 - `pamem status --json` or equivalent read-only status;
 - `pamem lint` where available;
 - pamem entry skill visibility when runtime integration is enabled.
