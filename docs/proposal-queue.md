@@ -17,6 +17,7 @@ noesis proposal list [--workspace <path>] [--dir <dir>] [--status <status>] [--j
 noesis proposal summary [--workspace <path>] [--dir <dir>] [--stale-days <days>] [--json]
 noesis proposal show <proposal-id-or-path> [--workspace <path>] [--dir <dir>] [--json]
 noesis proposal update <proposal-id-or-path> --status <status> [--reviewer <name>] [--note <text>] [--json]
+noesis owner outcome <proposal-id-or-path> --status <status> --ref <kind>:<value> [--json]
 ```
 
 `list`, `summary`, and `show` are read-only. `update` writes only the selected
@@ -35,7 +36,8 @@ remains a later subsystem-specific workflow.
 - invalid JSON artifacts;
 - pending high-risk proposals;
 - stale pending proposals, using `--stale-days` with a default of 7;
-- approved proposals that still need owner handoff.
+- approved proposals that still need owner handoff;
+- handed-off proposals whose owner outcome is still pending.
 
 It reports `downstream_execution=not-run` and `writes=[]`. A warning summary is
 not an apply signal; it only tells reviewers which proposal artifacts need
@@ -50,10 +52,10 @@ Supported review statuses:
 - `rejected`: reviewer rejects the proposal.
 - `superseded`: a newer proposal replaces this one.
 
-Reserved status:
+Reserved statuses:
 
-- `applied`: reserved for a future owner-apply flow. The review CLI does not set
-  it.
+- `applied`, `owner_pending`, `materialized`, `merged`, and `failed`: reserved
+  for owner outcome flow. The review CLI does not set them.
 
 Allowed review transitions:
 
@@ -88,6 +90,38 @@ The command preserves the proposal-only boundary:
 - `outcome.status` remains `not_applied`;
 - the proposal file remains under the configured proposal queue directory;
 - no downstream owner command is executed.
+
+## Owner Outcome Metadata
+
+After an approved proposal has an owner handoff, `noesis owner outcome` can
+record compact owner-side refs on the original proposal:
+
+```json
+{
+  "status": "owner_pending",
+  "recorded_at": "2026-05-22T00:00:00.000Z",
+  "recorded_by": "@Percy",
+  "target_owner": "pamem",
+  "handoff_path": ".noesis/owner-handoffs/pamem/pending/example.json",
+  "refs": [
+    { "kind": "handoff", "ref": ".noesis/owner-handoffs/pamem/pending/example.json" },
+    { "kind": "pr", "ref": "https://github.com/PHLens/agent-memory/pull/99" }
+  ],
+  "note": "Owner PR opened.",
+  "downstream_execution": "not-run",
+  "applied_by": null,
+  "applied_at": null
+}
+```
+
+Supported outcome statuses are `owner_pending`, `materialized`, `merged`,
+`rejected`, and `failed`. Supported owner ref kinds are `pr`, `draft`, `commit`,
+`report`, `url`, and `handoff`.
+
+Outcome recording requires a matching owner handoff artifact and at least one
+owner ref. It writes only the proposal JSON file, appends `outcome_history`, and
+keeps `downstream_execution=not-run`. It does not create PRs, drafts, commits,
+reports, memory entries, wiki pages, skills, or eval files.
 
 ## JSON Envelope
 
@@ -156,10 +190,12 @@ The proposal queue is intentionally small:
 - It does not mutate pamem memory, LoreForge wiki content, skills, or evals.
 - It does not record full transcripts.
 
-The next owner handoff slice consumes `approved` proposals and writes
-Noesis-owned handoff artifacts under `.noesis/owner-handoffs/<owner>/pending/`.
-It is documented in `docs/owner-handoff.md`. It does not call owner commands,
-create owner PRs, or mark proposals applied.
+The owner handoff slice consumes `approved` proposals and writes Noesis-owned
+handoff artifacts under `.noesis/owner-handoffs/<owner>/pending/`. It is
+documented in `docs/owner-handoff.md`. It does not call owner commands or
+create owner PRs. The matching owner outcome command can later link an owner
+PR, draft, commit, or report back to the proposal queue without executing owner
+work.
 
 `noesis eval handoff`, documented in `docs/eval-handoff.md`, remains the
 eval-specific report shape for eval-owner action without creating eval files or

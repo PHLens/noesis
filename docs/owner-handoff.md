@@ -9,6 +9,7 @@ changes.
 
 ```bash
 noesis owner handoff <proposal-id-or-path> [--workspace <path>] [--proposal-dir <dir>] [--out <dir>] [--reviewer <name>] [--note <text>] [--force] [--json]
+noesis owner outcome <proposal-id-or-path> --status <status> --ref <kind>:<value> [--ref <kind>:<value>...] [--workspace <path>] [--json]
 ```
 
 Defaults:
@@ -41,6 +42,36 @@ The input proposal must be:
 The handoff status starts as `pending_owner_action`. Owner workflows can consume
 the handoff, run their own checks, materialize owner artifacts, and later record
 an outcome through a separate outcome command.
+
+## Outcome Record
+
+After an owner lane acts on a handoff, Noesis can record compact owner-side
+references back on the original proposal:
+
+```bash
+noesis owner outcome <proposal-id-or-path> \
+  --status owner_pending \
+  --ref pr:https://github.com/PHLens/agent-memory/pull/99 \
+  --ref report:memory-owner-review \
+  --reviewer @Percy \
+  --json
+```
+
+Supported outcome statuses:
+
+- `owner_pending`: an owner PR, draft, or review request exists but is not final;
+- `materialized`: owner-side artifacts were produced for review;
+- `merged`: the owner lane merged or accepted the change;
+- `rejected`: the owner rejected the handoff;
+- `failed`: owner processing failed and needs follow-up.
+
+Supported ref kinds are `pr`, `draft`, `commit`, `report`, `url`, and `handoff`.
+
+`owner outcome` requires an existing matching handoff artifact. It writes only
+the original proposal JSON file, replacing `outcome.status=not_applied` with an
+owner outcome record and appending `outcome_history`. It does not call owner
+commands, mutate the handoff artifact, create owner PRs or drafts, or apply
+memory/wiki/skill/eval changes. `downstream_execution` remains `not-run`.
 
 ## JSON Envelope
 
