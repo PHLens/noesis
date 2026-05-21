@@ -166,7 +166,7 @@ Compression converts accumulated history into maintained artifacts.
 
 Evaluation limits behavior drift.
 
-Noesis already has routing evals. Future gates should include:
+Future gates should include:
 
 - learning router evals
 - skill golden tasks

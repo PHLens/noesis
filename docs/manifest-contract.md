@@ -52,7 +52,7 @@ Required top-level tables:
 |---|---|---|
 | `schema_version` | yes | Manifest schema version |
 | `workspace` | yes | Workspace root, relative path, or `${workspace}` placeholder |
-| `entry_skill` | yes | Noesis router entry skill |
+| `entry_skill` | yes | Default Noesis intake entry skill |
 | `minimum_noesis_version` | no | Minimum compatible Noesis version |
 | `mode` | yes | `standalone`, `workspace`, or `agent` |
 
@@ -101,7 +101,6 @@ Out of scope for Noesis:
 
 - direct stable memory writes;
 - `.pamem/config.toml` rewrites outside pamem-owned commands;
-- private sync backend execution;
 - pamem memory repo layout management.
 
 ### LoreForge
@@ -128,7 +127,7 @@ Out of scope for Noesis:
 
 - direct wiki staging or promotion;
 - wiki directory ownership;
-- wiki sync backend execution;
+- wiki backend propagation;
 - domain-path inference without LoreForge rules.
 
 ### skill-manager
@@ -171,7 +170,7 @@ It leaves unchanged:
 - owner configs;
 - memory, wiki, and skill state;
 - installed capabilities;
-- sync state;
+- owner backend propagation state;
 - proposal application state.
 
 ## Init Semantics
@@ -198,7 +197,7 @@ Out of scope:
 - stable pamem memory writes;
 - LoreForge wiki staging or promotion;
 - skill changes without approval;
-- credentials or private sync tokens in `.noesis/config.toml`.
+- credentials or private owner tokens in `.noesis/config.toml`.
 
 ## Failure Handling
 

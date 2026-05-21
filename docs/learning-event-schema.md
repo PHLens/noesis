@@ -224,11 +224,11 @@ work that should be clarified before converting the event to a promote request.
 Learning-event check is the intake gate. It does not:
 
 - create promote requests;
-- run the writeback-router;
+- run routing or bridge logic;
 - generate proposal artifacts;
 - update proposal review state;
 - apply memory, wiki, skill, or eval changes;
 - retain full transcripts or raw logs.
 
-Task #12 will define the bridge from checked events and router output to
-promote-request artifacts.
+Task #12 will define the bridge from checked events to promote-request
+artifacts.

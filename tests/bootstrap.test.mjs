@@ -56,6 +56,7 @@ test('init creates only Noesis-owned bootstrap state and manifest', (t) => {
   assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'reports')), true);
   assert.equal(fs.existsSync(path.join(workspace, '.pamem')), false);
   assert.equal(fs.existsSync(path.join(workspace, '.loreforge')), false);
+  assert.equal(data.manifest.noesis.entry_skill, 'heuristic-intake');
   assert.equal(data.manifest.components.pamem.enabled, true);
   assert.equal(data.manifest.components.loreforge.enabled, commandExists('loreforge'));
   assert.equal(data.manifest.components.loreforge.required_cli, 'loreforge');

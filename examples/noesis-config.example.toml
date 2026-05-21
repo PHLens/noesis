@@ -5,7 +5,7 @@
 [noesis]
 schema_version = "0.1"
 workspace = "${workspace}"
-entry_skill = "writeback-router"
+entry_skill = "heuristic-intake"
 minimum_noesis_version = "0.1.0"
 mode = "workspace"
 
