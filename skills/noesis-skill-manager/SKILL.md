@@ -47,7 +47,11 @@ For symlink skills, noesis resolves source directories in this order:
 
 1. managed sources packaged under noesis `skills/`
 2. external compatibility sources under `~/skills`
-3. explicit `--source <path>` under either supported source root
+
+Explicit `--source <path>` overrides that search and may point to any local
+skill directory that exists and contains `SKILL.md`. Use this for owner-repo
+skills, such as LoreForge-maintained skills, without copying those skills into
+the Noesis repository.
 
 Noesis creates relative symlinks in both `.codex/skills/` and `.claude/skills/`, repairs mismatched symlinks, rejects non-symlink conflicts, and removes only visibility links.
 

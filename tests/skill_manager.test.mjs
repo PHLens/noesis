@@ -198,6 +198,17 @@ function makeSkill(home, name) {
 }
 
 
+function makeSkillAt(root, name) {
+  const source = path.join(root, name);
+  fs.mkdirSync(source, { recursive: true });
+  fs.writeFileSync(
+    path.join(source, 'SKILL.md'),
+    `---\nname: ${name}\ndescription: Local source test skill.\n---\n\n# ${name}\n`,
+  );
+  return source;
+}
+
+
 function makeManagedSkill(t, name) {
   const source = path.join(REPO_ROOT, 'skills', name);
   fs.rmSync(source, { recursive: true, force: true });
@@ -389,6 +400,10 @@ test('packaged noesis skill manager entry skill installs as a managed source', (
   assert.equal(inspectData.source.kind, 'managed');
   assert.equal(inspectData.source.has_skill_md, true);
   assert.equal(inspectData.skill.status, 'ok');
+  assert.match(
+    fs.readFileSync(path.join(source, 'SKILL.md'), 'utf8'),
+    /--source <path>[\s\S]*any local[\s\S]*owner-repo[\s\S]*skills/,
+  );
 
   const verify = runNoesis(['skill', 'verify', 'noesis-skill-manager', '--json'], { cwd: workspace, home });
   assert.equal(JSON.parse(verify.stdout).status, 'ok');
@@ -440,6 +455,49 @@ test('explicit source can select external when managed source exists', (t) => {
   assert.equal(explicitData.source.kind, 'external');
   assert.equal(explicitData.source.path, fs.realpathSync(externalSource));
   assert.notEqual(explicitData.source.path, fs.realpathSync(managedSource));
+});
+
+
+test('explicit source can add a local skill outside managed and home roots', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  const otherRoot = path.join(root, 'other-sources');
+  const name = uniqueName('local-source-demo');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  const source = makeSkillAt(otherRoot, name);
+
+  const add = runNoesis(['skill', 'add', name, '--source', source, '--json'], { cwd: workspace, home });
+  const addData = JSON.parse(add.stdout);
+
+  assert.equal(addData.source.kind, 'local');
+  assert.equal(addData.source.source_kind, 'local');
+  assert.equal(addData.source.root, fs.realpathSync(otherRoot));
+  assert.equal(addData.source.path, fs.realpathSync(source));
+  assert.equal(addData.skill.status, 'ok');
+  assert.equal(fs.realpathSync(path.join(workspace, '.codex', 'skills', name)), fs.realpathSync(source));
+  assert.equal(fs.realpathSync(path.join(workspace, '.claude', 'skills', name)), fs.realpathSync(source));
+
+  const verify = runNoesis(['skill', 'verify', name, '--source', source, '--json'], { cwd: workspace, home });
+  assert.equal(JSON.parse(verify.stdout).status, 'ok');
+});
+
+
+test('explicit local source still requires SKILL.md', (t) => {
+  const root = withTempDir(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  const source = path.join(root, 'other-sources', 'missing-skill-md');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  fs.mkdirSync(source, { recursive: true });
+
+  const result = runNoesis(['skill', 'add', 'missing-skill-md', '--source', source], { cwd: workspace, home, check: false });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /missing SKILL.md/);
+  assert.equal(fs.existsSync(path.join(workspace, '.codex')), false);
 });
 
 
