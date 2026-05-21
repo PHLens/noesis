@@ -170,6 +170,12 @@ test('setup bootstraps Noesis skills and local owner components', (t) => {
   assert.equal(data.status, 'ok');
   assert.equal(data.doctor.status, 'ok');
   assert.equal(data.doctor.summary.warning_count, 0);
+  assert.equal(data.doctor.readiness.status, 'ok');
+  assert.equal(data.doctor.readiness.sections.noesis.status, 'ok');
+  assert.equal(data.doctor.readiness.sections.entry_skills.status, 'ok');
+  assert.equal(data.doctor.readiness.sections.pamem.status, 'ok');
+  assert.equal(data.doctor.readiness.sections.loreforge.status, 'ok');
+  assert.equal(data.doctor.readiness.sections.skill_manager.status, 'ok');
   assert.equal(fs.existsSync(path.join(workspace, '.noesis', 'config.toml')), true);
   assert.equal(fs.existsSync(path.join(workspace, '.codex', 'skills', 'heuristic-intake')), true);
   assert.equal(fs.existsSync(path.join(workspace, '.claude', 'skills', 'noesis-skill-manager')), true);
