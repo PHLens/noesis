@@ -15,21 +15,17 @@ owner = "pamem"
 config_path = ".pamem/config.toml"
 required_cli = "pamem"
 required_version = "0.1.0"
-required_entry_skill = "pamem"
-init_command = "pamem init --workspace ${workspace}"
+init_command = ""
 status_command = "pamem status --workspace ${workspace} --json"
 validate_command = "pamem lint --workspace ${workspace} --json"
 
 [components.loreforge]
 enabled = true
 owner = "LoreForge"
-config_path = ".loreforge/config.toml"
 required_cli = "loreforge"
 required_version = "0.1.0"
 required_entry_skill = "loreforge"
 init_command = "loreforge init --wiki ${workspace} --domain ai-research --json"
-status_command = "loreforge status --json"
-validate_command = "loreforge validate --all-domains --json"
 
 [components.skill_manager]
 enabled = true

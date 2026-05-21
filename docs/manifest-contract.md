@@ -98,7 +98,10 @@ Owner: `pamem`
 
 Noesis may expect:
 
-- `pamem init` or equivalent initialization;
+- `pamem onboard` or equivalent intentional profile/runtime binding during
+  umbrella setup;
+- `pamem install` / `pamem repair` or equivalent bootstrap refresh after a
+  binding exists;
 - `pamem status --json` or equivalent read-only status;
 - `pamem lint` where available;
 - pamem entry skill visibility when runtime integration is enabled.
@@ -121,13 +124,13 @@ Noesis may expect:
 - LoreForge entry skill visibility when wiki workflows are enabled.
 
 The exact command names are left to the LoreForge owner contract. Generated
-manifests use the stable `loreforge status`, `loreforge validate`, and
-`loreforge init` CLI surface when that CLI is discoverable. If the CLI is not
-available, Noesis still declares the component but leaves it disabled. Noesis
-consumes the declared component commands from the manifest and leaves wiki
-mechanics to LoreForge. The generated status and validation commands use the
-LoreForge registry/default wiki; the init command uses `${workspace}` only as a
-candidate wiki path for a proposal-only plan.
+manifests use the stable `loreforge init` proposal-only CLI surface when that
+CLI is discoverable. If the CLI is not available, Noesis still declares the
+component but leaves it disabled. Noesis consumes declared component commands
+from the manifest and leaves wiki mechanics to LoreForge. The generated init
+command uses `${workspace}` only as a candidate wiki path for a proposal-only
+plan. Read-only `status_command` and `validate_command` may be added when a
+workspace has a configured LoreForge registry/default wiki.
 
 Out of scope for Noesis:
 
