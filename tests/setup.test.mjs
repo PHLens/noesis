@@ -102,7 +102,42 @@ function makeLoreForgeComponent(root) {
   fs.mkdirSync(path.join(source, 'bin'), { recursive: true });
   fs.mkdirSync(path.join(source, 'skills', 'loreforge'), { recursive: true });
   fs.writeFileSync(path.join(source, 'skills', 'loreforge', 'SKILL.md'), '---\nname: loreforge\ndescription: test\n---\n');
-  fs.writeFileSync(path.join(source, 'bin', 'loreforge'), '#!/usr/bin/env node\nconsole.log(JSON.stringify({ status: "ok" }));\n');
+  fs.writeFileSync(
+    path.join(source, 'bin', 'loreforge'),
+    `#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+const [command, ...args] = process.argv.slice(2);
+function value(name) {
+  const index = args.indexOf(name);
+  return index === -1 ? null : args[index + 1];
+}
+if (command === 'setup') {
+  const wiki = value('--wiki');
+  const domain = value('--domain');
+  if (!wiki || !domain) process.exit(3);
+  fs.mkdirSync(path.join(wiki, 'Domains', domain), { recursive: true });
+  fs.writeFileSync(path.join(wiki, 'Domains', domain, 'index.md'), '# Domain\\n');
+  console.log(JSON.stringify({
+    component: 'loreforge',
+    operation: 'setup',
+    ok: true,
+    selected_wiki: { name: 'main', path: wiki, default_domain: domain },
+    domain: { name: domain, path: path.join(wiki, 'Domains', domain) },
+    writes: [{ kind: 'directory', path: wiki }],
+    preserved: [],
+    sync: { executed: false },
+    validation: { ok: true, issues: [] },
+  }));
+  process.exit(0);
+}
+if (command === 'status' || command === 'validate' || command === 'init') {
+  console.log(JSON.stringify({ status: 'ok', ok: true, operation: command }));
+  process.exit(0);
+}
+process.exit(2);
+`,
+  );
   fs.chmodSync(path.join(source, 'bin', 'loreforge'), 0o755);
   return source;
 }
@@ -141,6 +176,60 @@ test('setup bootstraps Noesis skills and local owner components', (t) => {
   assert.match(config, /init_command = ".*pamem\.mjs/);
   assert.equal(config.includes("setup ${workspace} --profile 'coder' --runtime 'cli' --json"), true);
   assert.match(config, /required_entry_skill_source = ".*LoreForge.*skills.*loreforge/);
+});
+
+
+test('setup can run LoreForge owner setup when wiki and domain are provided', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  const wiki = path.join(root, 'wiki');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  const loreforge = makeLoreForgeComponent(root);
+
+  const result = runNoesis([
+    'setup',
+    '--workspace', workspace,
+    '--with', 'loreforge',
+    '--component', `loreforge=${loreforge}`,
+    '--loreforge-wiki', wiki,
+    '--loreforge-domain', 'research',
+    '--json',
+  ], { cwd: root, home });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.doctor.status, 'ok');
+  assert.equal(fs.realpathSync(path.join(workspace, '.codex', 'skills', 'loreforge')), path.join(loreforge, 'skills', 'loreforge'));
+  assert.equal(fs.existsSync(path.join(wiki, 'Domains', 'research', 'index.md')), true);
+
+  const config = fs.readFileSync(path.join(workspace, '.noesis', 'config.toml'), 'utf8');
+  assert.equal(config.includes(`setup --wiki '${wiki}' --domain 'research' --json`), true);
+  assert.equal(config.includes("status --wiki-name 'main' --json"), true);
+  assert.equal(config.includes(`validate --wiki '${wiki}' --all-domains --json`), true);
+  assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'loreforge'), true);
+});
+
+
+test('setup requires explicit LoreForge component source for LoreForge bootstrap', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+
+  const result = runNoesis([
+    'setup',
+    '--workspace', workspace,
+    '--with', 'loreforge',
+    '--loreforge-wiki', path.join(root, 'wiki'),
+    '--loreforge-domain', 'research',
+    '--json',
+  ], { cwd: root, home, check: false });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /LoreForge setup requires --component loreforge=/);
 });
 
 
