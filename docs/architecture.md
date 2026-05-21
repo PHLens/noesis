@@ -92,8 +92,9 @@ Noesis should eventually manage these artifact families:
 - `eval-proposal`: request to add a regression or golden case
 - `compression-proposal`: request to consolidate repeated or stale artifacts
 
-The current implementation covers learning-event intake, promote-request checks,
-proposal-only planning, proposal queue review, and the heuristic-intake skill.
+The current implementation covers learning-event intake, event-to-promote-request
+bridging, promote-request checks, proposal-only planning, proposal queue review,
+and the heuristic-intake skill.
 
 The first promote/gate design slice is documented in
 `docs/entry-skill-workflow.md`. Entry skills stay thin: pamem handles memory,

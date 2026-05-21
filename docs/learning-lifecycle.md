@@ -6,8 +6,9 @@ This document defines the target learning loop for Noesis as a heuristic system 
 
 ```text
 learning event
-  -> route
-  -> propose
+  -> event promote bridge
+  -> promote request
+  -> proposal plan
   -> review
   -> apply through owner
   -> evaluate
@@ -37,12 +38,17 @@ The first intake command is:
 
 ```bash
 noesis event check .noesis/events/<id>.json
+noesis event promote .noesis/events/<id>.json
 ```
 
 `event check` validates the event but does not route it, create a promote
 request, write proposal artifacts, or apply downstream owner changes. Missing
 or unresolved routing hints are warnings so intake can happen before routing is
 complete.
+
+`event promote` reruns the event check and writes one promote-request artifact
+only. It maps routing hints into candidate items and requested outputs, but
+does not plan proposals or apply downstream owner changes.
 
 See `docs/learning-event-schema.md`.
 
