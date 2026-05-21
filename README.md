@@ -32,9 +32,9 @@ Noesis owns:
 
 - learning event capture: durable signals from tasks, feedback, failures, and repeated workflows
 - routing decisions for memory, knowledge, skills, evals, compression, or discard
-- writeback intent schema and routing vocabulary
+- promote-request and proposal routing vocabulary
 - proposal lifecycle for reviewable memory/wiki/skill/eval changes
-- routing evals and learning-loop quality gates
+- learning-loop quality gates
 - coordination policy for automation boundaries and required review
 
 Noesis may coordinate:
@@ -51,7 +51,6 @@ Out of scope for Noesis:
 - direct LoreForge wiki staging or promotion
 - skill installation, enabling, or update without approval
 - memory repo or wiki structure ownership
-- private sync backend execution
 - full transcript retention by default
 - bypass review for high-impact behavior changes
 
@@ -68,13 +67,8 @@ Implemented:
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
-- managed skill sources for `code-review`, `doc-review`, `heuristic-intake`, `noesis-skill-manager`, `shared-devflow`, and `writeback-router`
+- managed skill sources for `code-review`, `doc-review`, `heuristic-intake`, `noesis-skill-manager`, and `shared-devflow`
 - `skills/heuristic-intake/`: drafts compact learning-event artifacts from durable task residue
-- `skills/writeback-router/`: classifies durable residue and emits writeback intent
-- `examples/writeback-intent.example.json`: example intent artifact
-- `evals/writeback-routing.jsonl`: golden routing cases
-- `evals/run-writeback-routing-evals.py`: routing eval runner
-- `tests/routing_eval/`: routing eval tests
 - `tests/skill_manager.test.mjs`: skill-manager CLI tests
 
 Not yet implemented:
@@ -108,9 +102,9 @@ with the owning subsystem and requires review where configured.
 
 Runtime use is entry-skill driven:
 
-- `pamem` entry skill handles memory loading, memory governance, memory lint, and memory update requests.
+- `pamem` entry skill handles memory loading, memory governance, memory lint, and memory proposal handoffs.
 - `LoreForge` entry skill handles wiki/source-backed knowledge staging and promotion.
-- Noesis `writeback-router` classifies durable residue and emits intent artifacts.
+- Noesis `heuristic-intake` drafts compact learning-event artifacts from durable task residue.
 - Noesis `noesis-skill-manager` delegates skill visibility and capability lifecycle work to `noesis skill ...`.
 
 When a user explicitly asks to promote or gate a repeated pattern, Noesis
@@ -172,7 +166,7 @@ The bootstrap commands are intentionally conservative:
 - `config show` prints the raw or parsed manifest.
 
 They create Noesis-owned bootstrap state only. pamem memory, LoreForge wiki
-content, sync, and skill changes remain outside this command surface.
+content and skill changes remain outside this command surface.
 Generated manifests enable pamem by default. LoreForge is enabled when the
 `loreforge` CLI is discoverable; otherwise it remains declared but disabled.
 
@@ -237,12 +231,6 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `skills/heuristic-intake/SKILL.md`: intake entry skill for learning-event drafting
 - `skills/heuristic-intake/references/durability-rules.md`: durability and routing-hint rules
 - `skills/heuristic-intake/references/event-template.json`: learning-event draft template
-- `skills/writeback-router/SKILL.md`: current writeback-router skill
-- `skills/writeback-router/references/intent-schema.md`: writeback intent schema reference
-- `skills/writeback-router/references/routing-rules.md`: routing and review policy reference
-- `examples/writeback-intent.example.json`: example writeback intent artifact
-- `evals/writeback-routing.jsonl`: routing eval cases
-- `evals/run-writeback-routing-evals.py`: routing eval runner
 
 ## Tagline
 

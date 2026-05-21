@@ -86,14 +86,14 @@ Noesis should eventually manage these artifact families:
 
 - `learning-event`: a signal that something may be worth learning
 - `promote-request`: explicit local request to route and gate candidate learning residue
-- `writeback-intent`: current routing artifact for pamem/LoreForge destinations
 - `memory-proposal`: request for pamem-owned memory update
 - `wiki-proposal`: request for LoreForge-owned wiki staging
 - `skill-proposal`: request to create or update a skill
 - `eval-proposal`: request to add a regression or golden case
 - `compression-proposal`: request to consolidate repeated or stale artifacts
 
-The current implementation only covers `writeback-intent` and routing evals.
+The current implementation covers learning-event intake, promote-request checks,
+proposal-only planning, proposal queue review, and the heuristic-intake skill.
 
 The first promote/gate design slice is documented in
 `docs/entry-skill-workflow.md`. Entry skills stay thin: pamem handles memory,
@@ -192,7 +192,6 @@ memory governance remains in pamem.
 - pamem memory governance
 - LoreForge wiki mechanics
 - skill changes without approval
-- private sync backend execution
 - full transcript retention by default
 
 ## Name

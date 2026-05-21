@@ -12,10 +12,9 @@ The runtime surface stays small:
 
 | Entry point | Owner | Purpose | Direct writes |
 |---|---|---|---|
-| pamem entry skill | pamem | load memory context, explain memory rules, request memory updates, run pamem lint/sync through pamem-owned policy | pamem-owned only |
+| pamem entry skill | pamem | load memory context, explain memory rules, handle memory proposal handoffs, run pamem lint through pamem-owned policy | pamem-owned only |
 | LoreForge entry skill | LoreForge | capture source-backed knowledge, stage wiki notes, run wiki validation, promote wiki content | LoreForge-owned only |
 | heuristic-intake skill | Noesis | decide whether task residue is durable and draft learning-event artifacts | no |
-| writeback-router skill | Noesis | classify durable residue and emit writeback intent artifacts | no |
 | noesis-skill-manager skill | Noesis | inspect, verify, add, or remove skills/capabilities through `noesis skill ...` | approved skill visibility only |
 
 Noesis may package thin entry skills that route work to the owning subsystem.
@@ -30,17 +29,15 @@ learning residue.
 task finishes
   -> agent identifies candidate durable residue
   -> transient task detail is discarded
-  -> obvious runtime memory is handled by pamem rules
+  -> memory proposals and runtime memory are handled by pamem rules
   -> source-backed domain knowledge is handed to LoreForge
   -> repeated procedures or missing capabilities become Noesis candidates
 ```
 
-Use the writeback router when there is meaningful durable residue.
-
-Use the heuristic-intake skill before routing when the question is whether a
-task signal should become a learning-event artifact. It drafts compact events
-and requires `noesis event check`; it does not create promote requests or apply
-owner changes.
+Use the heuristic-intake skill when there is meaningful durable residue and the
+question is whether a task signal should become a learning-event artifact. It
+drafts compact events and requires `noesis event check`; it does not create
+promote requests or apply owner changes.
 
 ## Explicit Promote Flow
 
@@ -107,7 +104,6 @@ Allowed automatically:
 
 - create a promote-request artifact
 - classify candidate items
-- generate writeback intents
 - draft isolated proposal artifacts
 - run read-only lint, schema, and eval checks
 - report a review queue
@@ -135,7 +131,7 @@ The first code slice should be small:
 
 1. accept an explicit promote-request JSON file;
 2. validate required fields and source-reference shape;
-3. reuse writeback-router vocabulary where possible;
+3. validate candidate kind and owner-surface vocabulary;
 4. validate target surface, risk, review, and proposal-only gate boundaries;
 5. reject transcript-like retention fields;
 6. never write proposals or apply downstream changes.

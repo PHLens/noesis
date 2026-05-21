@@ -9,19 +9,16 @@
     "bin/",
     "lib/",
     "skills/",
-    "evals/run-writeback-routing-evals.py",
-    "evals/writeback-routing.jsonl",
     "examples/learning-event.example.json",
     "examples/noesis-config.example.toml",
     "examples/promote-request.example.json",
-    "examples/writeback-intent.example.json",
     "docs/",
     "LICENSE",
     "README.md"
   ],
   "scripts": {
-    "check": "node --check bin/noesis && node --check lib/*.mjs && node --check tests/*.mjs && python3 -m py_compile evals/run-writeback-routing-evals.py tests/routing_eval/test_writeback_routing_evals.py",
-    "test": "python3 -m unittest discover -s tests && node --test tests/*.test.mjs"
+    "check": "node --check bin/noesis && node --check lib/*.mjs && node --check tests/*.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@phlens/pamem": "git+ssh://git@github.com/PHLens/pamem.git"
