@@ -94,7 +94,7 @@ Noesis should eventually manage these artifact families:
 
 The current implementation covers learning-event intake, event-to-promote-request
 bridging, promote-request checks, proposal-only planning, proposal queue review,
-and the heuristic-intake skill.
+eval handoff reports, and the heuristic-intake skill.
 
 The first promote/gate design slice is documented in
 `docs/entry-skill-workflow.md`. Entry skills stay thin: pamem handles memory,
@@ -110,6 +110,7 @@ Safe by default:
 - generate proposals
 - run read-only evals and lint checks
 - draft skill changes in isolated proposal locations
+- write owner-handoff reports for approved eval proposals
 
 Requires review:
 

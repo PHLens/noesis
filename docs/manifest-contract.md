@@ -86,6 +86,10 @@ future extension and requires an explicit command or flag.
 | `proposals` | yes | Local proposal directory |
 | `reports` | yes | Local reports/doctor output directory |
 
+Owner handoff reports may create subdirectories below `reports`, such as
+`reports/eval-handoffs/`. Those reports are Noesis-owned local state and do not
+imply downstream owner apply has happened.
+
 ## Component Contract
 
 ### pamem

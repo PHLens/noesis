@@ -65,6 +65,7 @@ Implemented:
 - `noesis event promote` for event-to-promote-request bridge artifacts
 - `noesis promote check` and `noesis promote plan` for checked, proposal-only promote flow
 - `noesis proposal list`, `noesis proposal summary`, `noesis proposal show`, and `noesis proposal update` for proposal queue review metadata
+- `noesis eval handoff` for approved eval-proposal owner handoff reports
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
@@ -154,6 +155,7 @@ noesis proposal list [--workspace <path>] [--dir .noesis/proposals] [--json]
 noesis proposal summary [--workspace <path>] [--dir .noesis/proposals] [--stale-days 7] [--json]
 noesis proposal show <proposal-id-or-path> [--workspace <path>] [--json]
 noesis proposal update <proposal-id-or-path> --status approved [--reviewer <name>] [--note <text>] [--json]
+noesis eval handoff <proposal-id-or-path> [--workspace <path>] [--out .noesis/reports/eval-handoffs] [--json]
 noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
 noesis skill inspect <name> [--source <path>] [--json]
 noesis skill verify [name] [--json]
@@ -206,6 +208,11 @@ statuses such as `approved`, `rejected`, or `superseded`. It writes only the
 proposal JSON file and preserves `outcome.status=not_applied`; owner apply flows
 remain outside Noesis. See `docs/proposal-queue.md`.
 
+`noesis eval handoff` consumes an approved `eval_proposal` and writes a
+Noesis-owned handoff report under `.noesis/reports/eval-handoffs/`. It does not
+create eval files, run evals, update proposals, or apply owner changes. See
+`docs/eval-handoff.md`.
+
 The skill manager manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, creates relative symlinks, repairs mismatched symlinks, refuses non-symlink conflicts, and removes only visibility links.
 
 The managed `noesis-skill-manager` skill is a thin runtime entrypoint that delegates skill and capability work to `noesis skill ...`; it does not duplicate the CLI implementation.
@@ -224,6 +231,7 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `lib/event.mjs`: learning-event schema and read-only intake check
 - `lib/promote.mjs`: promote-request schema, read-only gate checks, and proposal-only plan artifacts
 - `lib/proposal.mjs`: proposal queue list/show/update review metadata CLI
+- `lib/eval-handoff.mjs`: approved eval-proposal handoff report CLI
 - `docs/architecture.md`: current system boundary
 - `docs/entry-skill-workflow.md`: entry-skill and first promote/gate workflow
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
@@ -231,6 +239,7 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `docs/manifest-contract.md`: `.noesis/config.toml` and component contract
 - `docs/promote-request-schema.md`: promote-request schema and check report
 - `docs/proposal-queue.md`: proposal queue status and review CLI contract
+- `docs/eval-handoff.md`: approved eval-proposal handoff report contract
 - `examples/noesis-config.example.toml`: example Noesis bootstrap manifest
 - `examples/learning-event.example.json`: example learning-event artifact
 - `examples/promote-request.example.json`: example promote-request artifact
