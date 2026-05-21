@@ -174,6 +174,16 @@ The event bridge slice adds `noesis event promote`:
 5. preserve `gate_policy.allow_apply=false`;
 6. never generate proposal artifacts or apply downstream owner changes.
 
+The route slice adds `noesis route`:
+
+1. rerun `noesis event check` and generate the promote-request through the
+   existing event bridge;
+2. rerun `noesis promote check` and generate proposal artifacts through the
+   existing proposal planner;
+3. stop before later steps when any gate reports errors;
+4. report the embedded event/promote reports in one high-level result;
+5. never apply downstream owner changes.
+
 ## Relationship To Existing CLI
 
 Existing commands stay valid:
@@ -199,6 +209,7 @@ The first promote/gate command should be additive. Candidate command shape:
 
 ```bash
 noesis event promote .noesis/events/<id>.json --out .noesis/promote-requests/
+noesis route .noesis/events/<id>.json
 noesis promote check .noesis/promote-requests/<id>.json
 noesis promote plan .noesis/promote-requests/<id>.json --out .noesis/proposals/
 noesis proposal list

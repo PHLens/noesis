@@ -21,6 +21,7 @@ The bridge command is:
 ```bash
 noesis event promote .noesis/events/<id>.json
 noesis event promote .noesis/events/<id>.json --json
+noesis route .noesis/events/<id>.json --json
 ```
 
 `promote` reruns the read-only event check. If the event has check errors, it
@@ -28,6 +29,11 @@ writes nothing and exits `1`. If the event has no errors, it writes one
 promote-request JSON artifact under `.noesis/promote-requests/` or an explicit
 `--out` directory. It does not run proposal planning, update proposal review
 state, call owner commands, mutate memory, stage wiki content, or change skills.
+
+`route` is the high-level event-to-proposal orchestration command. It
+uses the same event bridge and promote planner, writing the promote-request and
+proposal artifacts in one command. It does not update proposal review state,
+call owner commands, mutate memory, stage wiki content, or change skills.
 
 ## Artifact Path
 
@@ -299,3 +305,7 @@ Learning-event promote is the bridge to promote-request artifacts. It does not:
 - update proposal review state;
 - apply memory, wiki, skill, or eval changes;
 - call downstream owner commands.
+
+Learning-event route orchestration composes the bridge and proposal planner. It
+does not change the underlying gate boundaries or apply downstream owner
+changes.
