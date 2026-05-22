@@ -1,0 +1,87 @@
+{
+  "schema_version": "0.1",
+  "case_id": "route-eval-proposal-basic",
+  "description": "A valid learning event routes into one eval proposal without owner execution.",
+  "input": {
+    "event": {
+      "schema_version": "0.1",
+      "event_id": "2026-05-22T02-30-00Z__route-eval-proposal-basic",
+      "created_at": "2026-05-22T02:30:00Z",
+      "workspace": "$WORKSPACE",
+      "kind": "repeated_workflow",
+      "summary": "Operator wants the event-to-proposal route flow covered by a golden replay.",
+      "source_refs": [
+        {
+          "kind": "slock_thread",
+          "ref": "#heuristic-system:8aa1f39e",
+          "summary": "Task thread requesting eval/replay golden coverage for route and proposal flow."
+        }
+      ],
+      "case": {
+        "situation": "A learning event with eval routing hints should become a reviewable eval proposal.",
+        "observed": "The route command composes event promote and promote plan gates.",
+        "desired": "Replay verifies the route result stays proposal-only and owner-safe.",
+        "evidence": "Golden replay should catch route or proposal schema drift before owner handoff."
+      },
+      "impact": {
+        "severity": "medium",
+        "recurrence": "repeated",
+        "confidence": "high"
+      },
+      "routing_hints": [
+        {
+          "candidate_kind": "eval",
+          "target_surface": "evals",
+          "review_required": true,
+          "reason": "The route behavior should be protected as a regression case."
+        }
+      ]
+    }
+  },
+  "expect": {
+    "status": "ok",
+    "downstream_execution": "not-run",
+    "summary": {
+      "request_count": 1,
+      "proposal_count": 1,
+      "error_count": 0
+    },
+    "request": {
+      "request_id": "2026-05-22T02-30-00Z__route-eval-proposal-basic__promote",
+      "workspace": "$WORKSPACE",
+      "gate_policy": {
+        "mode": "proposal_only",
+        "allow_apply": false,
+        "review_required": true
+      },
+      "requested_outputs": [
+        {
+          "kind": "eval_proposal",
+          "target_owner": "evals",
+          "review_required": true
+        }
+      ]
+    },
+    "proposals": [
+      {
+        "proposal_id": "2026-05-22T02-30-00Z__route-eval-proposal-basic__promote__01__eval_proposal",
+        "proposal_type": "eval_proposal",
+        "status": "pending_review",
+        "target_owner": "evals",
+        "target_surface": "evals",
+        "automation_boundary": {
+          "mode": "proposal_only",
+          "allow_apply": false,
+          "downstream_execution": "not-run",
+          "owner_apply_required": true
+        },
+        "outcome": {
+          "status": "not_applied",
+          "applied_by": null,
+          "applied_at": null
+        }
+      }
+    ],
+    "no_owner_state": true
+  }
+}

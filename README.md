@@ -69,6 +69,7 @@ Implemented:
 - `noesis owner handoff` for approved proposal handoff artifacts across owner lanes
 - `noesis owner outcome` for linking owner PR/draft/commit/report refs back to proposals
 - `noesis eval handoff` for approved eval-proposal owner handoff reports
+- `noesis eval replay` for route/proposal golden-case replay in temporary workspaces
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
@@ -163,6 +164,7 @@ noesis proposal update <proposal-id-or-path> --status approved [--reviewer <name
 noesis owner handoff <proposal-id-or-path> [--workspace <path>] [--out .noesis/owner-handoffs] [--json]
 noesis owner outcome <proposal-id-or-path> --status owner_pending --ref pr:<url> [--json]
 noesis eval handoff <proposal-id-or-path> [--workspace <path>] [--out .noesis/reports/eval-handoffs] [--json]
+noesis eval replay [case-file...] [--tmp-root <dir>] [--keep-workspaces] [--json]
 noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
 noesis skill inspect <name> [--source <path>] [--json]
 noesis skill verify [name] [--json]
@@ -274,8 +276,14 @@ owner artifacts or apply memory, wiki, skill, or eval changes. See
 
 `noesis eval handoff` consumes an approved `eval_proposal` and writes a
 Noesis-owned handoff report under `.noesis/reports/eval-handoffs/`. It does not
-create eval files, run evals, update proposals, or apply owner changes. See
+create eval files, run owner eval tooling, update proposals, or apply owner changes. See
 `docs/eval-handoff.md`.
+
+`noesis eval replay` runs route/proposal golden cases in isolated temporary
+workspaces. It replays learning-event input through `noesis route`, compares the
+resulting promote request and proposal artifacts to golden expectations, and
+removes the temporary workspace by default. It does not call owner commands or
+create downstream owner artifacts. See `docs/eval-replay.md`.
 
 The skill manager manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, and accepts explicit `--source <path>` directories that contain `SKILL.md`. It creates relative symlinks, repairs mismatched symlinks, refuses non-symlink conflicts, and removes only visibility links.
 
@@ -297,6 +305,7 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `lib/proposal.mjs`: proposal queue list/show/update review metadata CLI
 - `lib/owner-handoff.mjs`: generic approved-proposal owner handoff CLI
 - `lib/eval-handoff.mjs`: approved eval-proposal handoff report CLI
+- `lib/eval-replay.mjs`: route/proposal golden-case replay CLI
 - `docs/architecture.md`: current system boundary
 - `docs/entry-skill-workflow.md`: entry-skill and first promote/gate workflow
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
@@ -306,9 +315,11 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `docs/proposal-queue.md`: proposal queue status and review CLI contract
 - `docs/owner-handoff.md`: approved proposal owner-lane handoff contract
 - `docs/eval-handoff.md`: approved eval-proposal handoff report contract
+- `docs/eval-replay.md`: route/proposal golden replay contract
 - `examples/noesis-config.example.toml`: example Noesis bootstrap manifest
 - `examples/learning-event.example.json`: example learning-event artifact
 - `examples/promote-request.example.json`: example promote-request artifact
+- `examples/eval-replay.route-proposal.golden.json`: packaged route/proposal golden case
 - `findings.md`: accepted decisions and design findings
 - `task_plan.md`: current work tracker
 - `progress.md`: current progress and next steps

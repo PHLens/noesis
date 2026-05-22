@@ -214,11 +214,21 @@ Compression converts accumulated history into maintained artifacts.
 
 Evaluation limits behavior drift.
 
-Future gates should include:
+The first implemented eval runner is:
+
+```bash
+noesis eval replay [case-file...] [--json]
+```
+
+It replays learning-event input through route/proposal gates in temporary
+workspaces and compares the resulting promote request and proposals to golden
+expectations. It does not call owner commands or create downstream owner
+artifacts.
+
+Future gates should also include:
 
 - learning router evals
 - skill golden tasks
-- workflow replay cases
 - proposal validation
 - compression quality checks
 

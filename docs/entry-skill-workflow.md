@@ -217,6 +217,7 @@ noesis proposal summary
 noesis proposal show <proposal-id-or-path>
 noesis proposal update <proposal-id-or-path> --status approved
 noesis eval handoff <approved-eval-proposal-id-or-path>
+noesis eval replay
 ```
 
 `check` should be read-only. `plan` should write proposal artifacts only.
@@ -224,7 +225,9 @@ noesis eval handoff <approved-eval-proposal-id-or-path>
 `proposal update` should write only proposal review metadata.
 `owner outcome` should write only proposal outcome refs after an owner handoff.
 `eval handoff` should write only a Noesis report for the eval owner and should
-not create eval artifacts or run evals.
+not create eval artifacts or run owner eval tooling.
+`eval replay` should run route/proposal golden cases in temporary workspaces
+without owner apply.
 
 ## Open Design Questions
 

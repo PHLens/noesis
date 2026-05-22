@@ -9,6 +9,7 @@
     "bin/",
     "lib/",
     "skills/",
+    "examples/eval-replay.route-proposal.golden.json",
     "examples/learning-event.example.json",
     "examples/noesis-config.example.toml",
     "examples/promote-request.example.json",
