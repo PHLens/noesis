@@ -67,6 +67,7 @@ Implemented:
 - `noesis promote check` and `noesis promote plan` for checked, proposal-only promote flow
 - `noesis proposal list`, `noesis proposal summary`, `noesis proposal show`, and `noesis proposal update` for proposal queue review metadata
 - `noesis owner handoff` for approved proposal handoff artifacts across owner lanes
+- `noesis owner outcome` for linking owner PR/draft/commit/report refs back to proposals
 - `noesis eval handoff` for approved eval-proposal owner handoff reports
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
@@ -160,6 +161,7 @@ noesis proposal summary [--workspace <path>] [--dir .noesis/proposals] [--stale-
 noesis proposal show <proposal-id-or-path> [--workspace <path>] [--json]
 noesis proposal update <proposal-id-or-path> --status approved [--reviewer <name>] [--note <text>] [--json]
 noesis owner handoff <proposal-id-or-path> [--workspace <path>] [--out .noesis/owner-handoffs] [--json]
+noesis owner outcome <proposal-id-or-path> --status owner_pending --ref pr:<url> [--json]
 noesis eval handoff <proposal-id-or-path> [--workspace <path>] [--out .noesis/reports/eval-handoffs] [--json]
 noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
 noesis skill inspect <name> [--source <path>] [--json]
@@ -261,6 +263,13 @@ remain outside Noesis. See `docs/proposal-queue.md`.
 Noesis-owned handoff artifact under `.noesis/owner-handoffs/<owner>/pending/`.
 It does not call pamem, LoreForge, skill-manager, or eval commands; it only
 packages compact proposal context for the owner lane. See
+`docs/owner-handoff.md`.
+
+`noesis owner outcome` records owner-side PR, draft, commit, or report refs
+back onto a handed-off proposal. It can append progress from pending owner work
+to a terminal merged, rejected, or failed outcome. It writes only the proposal
+outcome record and keeps `downstream_execution=not-run`; it does not create
+owner artifacts or apply memory, wiki, skill, or eval changes. See
 `docs/owner-handoff.md`.
 
 `noesis eval handoff` consumes an approved `eval_proposal` and writes a

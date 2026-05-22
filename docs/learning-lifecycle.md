@@ -128,10 +128,28 @@ noesis proposal list
 noesis proposal summary
 noesis proposal show <proposal-id-or-path>
 noesis proposal update <proposal-id-or-path> --status approved
+noesis owner handoff <proposal-id-or-path>
+noesis owner outcome <proposal-id-or-path> --status owner_pending --ref pr:<url>
 noesis eval handoff <proposal-id-or-path>
 ```
 
 See `docs/proposal-queue.md`.
+
+## Owner Outcome Record
+
+After owner review starts or finishes, `noesis owner outcome` links owner-side
+refs back to the proposal queue. Typical refs are owner PRs, drafts, commits,
+reports, or handoff artifacts.
+
+This is still Noesis control-plane state:
+
+- it writes only the proposal artifact's `outcome` and `outcome_history`;
+- it can append owner progress from pending/materialized work to a terminal
+  merged, rejected, or failed outcome;
+- it does not call owner commands;
+- it does not create owner PRs, wiki drafts, skill changes, memory entries, or
+  eval files;
+- `downstream_execution` remains `not-run`.
 
 ## Eval Owner Handoff
 

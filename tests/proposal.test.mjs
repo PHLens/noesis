@@ -191,6 +191,65 @@ test('proposal summary reports approved owner handoff pending', (t) => {
 });
 
 
+test('proposal summary reports owner outcome pending without unsupported outcome warning', (t) => {
+  const workspace = tempWorkspace(t);
+  const { proposalId } = createProposal(workspace);
+  runNoesis(['proposal', 'update', proposalId, '--status', 'approved'], { cwd: workspace });
+  runNoesis(['owner', 'handoff', proposalId, '--json'], { cwd: workspace });
+  runNoesis([
+    'owner',
+    'outcome',
+    proposalId,
+    '--status',
+    'owner_pending',
+    '--ref',
+    'pr:https://github.com/PHLens/noesis/pull/25',
+    '--json',
+  ], { cwd: workspace });
+  const before = snapshot(workspace);
+
+  const result = runNoesis(['proposal', 'summary', '--json'], { cwd: workspace });
+  const after = snapshot(workspace);
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'warning');
+  assert.equal(data.summary.owner_outcome_pending_count, 1);
+  assert.equal(data.summary.owner_handoff_count, 0);
+  assert.equal(data.summary.warning_count, 1);
+  assert(data.warnings.some((warning) => warning.code === 'owner_outcome_pending' && warning.proposal_id === proposalId));
+  assert(!data.warnings.some((warning) => warning.code === 'unsupported_outcome_status'));
+  assert.deepEqual(data.writes, []);
+  assert.deepEqual(after, before);
+});
+
+
+test('proposal summary counts merged owner outcomes as terminal evidence', (t) => {
+  const workspace = tempWorkspace(t);
+  const { proposalId } = createProposal(workspace);
+  runNoesis(['proposal', 'update', proposalId, '--status', 'approved'], { cwd: workspace });
+  runNoesis(['owner', 'handoff', proposalId, '--json'], { cwd: workspace });
+  runNoesis([
+    'owner',
+    'outcome',
+    proposalId,
+    '--status',
+    'merged',
+    '--ref',
+    'commit:abc1234',
+    '--json',
+  ], { cwd: workspace });
+
+  const result = runNoesis(['proposal', 'summary', '--json'], { cwd: workspace });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.summary.merged_count, 1);
+  assert.equal(data.summary.owner_handoff_count, 0);
+  assert.equal(data.summary.owner_outcome_pending_count, 0);
+  assert.deepEqual(data.warnings, []);
+});
+
+
 test('proposal update records review metadata without owner apply', (t) => {
   const workspace = tempWorkspace(t);
   const { proposalId, proposalPath } = createProposal(workspace);
@@ -236,7 +295,7 @@ test('proposal update refuses applied status because apply belongs to owner flow
   const after = fs.readFileSync(proposalPath, 'utf8');
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /reserved for a future owner-apply flow/);
+  assert.match(result.stderr, /reserved for owner outcome flow/);
   assert.equal(after, before);
 });
 

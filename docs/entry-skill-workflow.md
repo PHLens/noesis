@@ -222,6 +222,7 @@ noesis eval handoff <approved-eval-proposal-id-or-path>
 `check` should be read-only. `plan` should write proposal artifacts only.
 `proposal list`, `proposal summary`, and `proposal show` should be read-only.
 `proposal update` should write only proposal review metadata.
+`owner outcome` should write only proposal outcome refs after an owner handoff.
 `eval handoff` should write only a Noesis report for the eval owner and should
 not create eval artifacts or run evals.
 

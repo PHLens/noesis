@@ -245,12 +245,230 @@ test('owner handoff refuses paths outside the proposal queue directory', (t) => 
 });
 
 
+test('owner outcome records owner refs on a handed-off proposal without owner apply', (t) => {
+  const workspace = tempWorkspace(t);
+  const { proposalPath, proposalId } = createProposal(workspace);
+  const handoffResult = runNoesis(['owner', 'handoff', proposalId, '--json'], { cwd: workspace });
+  const handoffPath = JSON.parse(handoffResult.stdout).handoff_path;
+  const handoffBefore = fs.readFileSync(handoffPath, 'utf8');
+
+  const result = runNoesis([
+    'owner',
+    'outcome',
+    proposalId,
+    '--status',
+    'owner_pending',
+    '--ref',
+    'pr:https://github.com/PHLens/agent-memory/pull/99',
+    '--ref',
+    'report:memory-owner-review',
+    '--reviewer',
+    '@Percy',
+    '--note',
+    'Owner PR opened.',
+    '--json',
+  ], { cwd: workspace });
+  const data = JSON.parse(result.stdout);
+  const proposal = JSON.parse(fs.readFileSync(proposalPath, 'utf8'));
+  const handoffAfter = fs.readFileSync(handoffPath, 'utf8');
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.command, 'owner outcome');
+  assert.equal(data.outcome_status, 'owner_pending');
+  assert.deepEqual(data.writes, [proposalPath]);
+  assert.equal(data.downstream_execution, 'not-run');
+  assert.equal(proposal.status, 'approved');
+  assert.equal(proposal.outcome.status, 'owner_pending');
+  assert.equal(proposal.outcome.recorded_by, '@Percy');
+  assert.equal(proposal.outcome.handoff_path, handoffPath);
+  assert.deepEqual(proposal.outcome.refs.map((ref) => ref.kind), ['handoff', 'pr', 'report']);
+  assert.equal(proposal.outcome.refs[1].ref, 'https://github.com/PHLens/agent-memory/pull/99');
+  assert.equal(proposal.outcome.applied_by, null);
+  assert.equal(proposal.outcome.applied_at, null);
+  assert.equal(proposal.automation_boundary.downstream_execution, 'not-run');
+  assert.equal(proposal.outcome_history.length, 1);
+  assert.equal(proposal.outcome_history[0].command, 'noesis owner outcome');
+  assert.equal(handoffAfter, handoffBefore);
+  assert.equal(fs.existsSync(path.join(workspace, '.pamem')), false);
+  assert.equal(fs.existsSync(path.join(workspace, '.loreforge')), false);
+});
+
+
+test('owner outcome can record merged owner refs without downstream execution', (t) => {
+  const workspace = tempWorkspace(t);
+  const { proposalPath, proposalId } = createProposal(workspace);
+  runNoesis(['owner', 'handoff', proposalId, '--json'], { cwd: workspace });
+
+  const result = runNoesis([
+    'owner',
+    'outcome',
+    proposalId,
+    '--status',
+    'merged',
+    '--ref',
+    'commit:abc1234',
+    '--owner',
+    'pamem-maintainer',
+    '--json',
+  ], { cwd: workspace });
+  const data = JSON.parse(result.stdout);
+  const proposal = JSON.parse(fs.readFileSync(proposalPath, 'utf8'));
+
+  assert.equal(data.outcome_status, 'merged');
+  assert.equal(data.downstream_execution, 'not-run');
+  assert.equal(proposal.outcome.status, 'merged');
+  assert.equal(proposal.outcome.applied_by, 'pamem-maintainer');
+  assert.match(proposal.outcome.applied_at, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(proposal.automation_boundary.allow_apply, false);
+});
+
+
+test('owner outcome refuses missing handoff, missing refs, invalid transitions, and terminal updates', (t) => {
+  const workspace = tempWorkspace(t);
+  const { proposalId, proposalPath } = createProposal(workspace);
+
+  const missingHandoff = runNoesis([
+    'owner',
+    'outcome',
+    proposalId,
+    '--status',
+    'owner_pending',
+    '--ref',
+    'pr:https://github.com/PHLens/noesis/pull/25',
+    '--json',
+  ], { cwd: workspace, check: false });
+  assert.equal(missingHandoff.status, 1);
+  assert.match(missingHandoff.stderr, /requires an existing owner handoff artifact/);
+
+  runNoesis(['owner', 'handoff', proposalId, '--json'], { cwd: workspace });
+
+  const missingRef = runNoesis([
+    'owner',
+    'outcome',
+    proposalId,
+    '--status',
+    'owner_pending',
+    '--json',
+  ], { cwd: workspace, check: false });
+  assert.equal(missingRef.status, 1);
+  assert.match(missingRef.stderr, /requires at least one --ref/);
+
+  const pendingResult = runNoesis([
+    'owner',
+    'outcome',
+    proposalId,
+    '--status',
+    'owner_pending',
+    '--ref',
+    'pr:https://github.com/PHLens/noesis/pull/25',
+    '--json',
+  ], { cwd: workspace });
+  const pendingProposal = JSON.parse(fs.readFileSync(proposalPath, 'utf8'));
+  assert.equal(JSON.parse(pendingResult.stdout).outcome_status, 'owner_pending');
+  assert.equal(pendingProposal.outcome.status, 'owner_pending');
+  assert.equal(pendingProposal.outcome_history.length, 1);
+
+  const duplicatePending = runNoesis([
+    'owner',
+    'outcome',
+    proposalPath,
+    '--status',
+    'owner_pending',
+    '--ref',
+    'pr:https://github.com/PHLens/noesis/pull/25',
+    '--json',
+  ], { cwd: workspace, check: false });
+  assert.equal(duplicatePending.status, 1);
+  assert.match(duplicatePending.stderr, /invalid owner outcome transition/);
+
+  const merged = runNoesis([
+    'owner',
+    'outcome',
+    proposalPath,
+    '--status',
+    'merged',
+    '--ref',
+    'commit:abc1234',
+    '--json',
+  ], { cwd: workspace });
+  const mergedData = JSON.parse(merged.stdout);
+  const mergedProposal = JSON.parse(fs.readFileSync(proposalPath, 'utf8'));
+  assert.equal(mergedData.outcome_status, 'merged');
+  assert.equal(mergedProposal.outcome.status, 'merged');
+  assert.deepEqual(mergedProposal.outcome.refs.map((ref) => ref.kind), ['handoff', 'pr', 'commit']);
+  assert.equal(mergedProposal.outcome.refs[1].ref, 'https://github.com/PHLens/noesis/pull/25');
+  assert.equal(mergedProposal.outcome.refs[2].ref, 'abc1234');
+  assert.equal(mergedProposal.outcome_history.length, 2);
+  assert.equal(mergedProposal.outcome_history[1].previous_status, 'owner_pending');
+  assert.deepEqual(mergedProposal.outcome_history[1].refs.map((ref) => ref.kind), ['handoff', 'commit']);
+
+  const terminalUpdate = runNoesis([
+    'owner',
+    'outcome',
+    proposalPath,
+    '--status',
+    'failed',
+    '--ref',
+    'report:post-merge-failure',
+    '--json',
+  ], { cwd: workspace, check: false });
+  assert.equal(terminalUpdate.status, 1);
+  assert.match(terminalUpdate.stderr, /already terminal/);
+});
+
+
+test('owner outcome refuses mismatched handoff and paths outside proposal queue', (t) => {
+  const workspace = tempWorkspace(t);
+  const { proposalPath, proposalId } = createProposal(workspace);
+  const handoffResult = runNoesis(['owner', 'handoff', proposalId, '--json'], { cwd: workspace });
+  const handoffPath = JSON.parse(handoffResult.stdout).handoff_path;
+  const mismatchedHandoffPath = path.join(workspace, 'wrong-handoff.json');
+  const handoff = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
+  handoff.proposal_id = 'different-proposal';
+  fs.writeFileSync(mismatchedHandoffPath, `${JSON.stringify(handoff, null, 2)}\n`);
+
+  const mismatch = runNoesis([
+    'owner',
+    'outcome',
+    proposalId,
+    '--handoff',
+    mismatchedHandoffPath,
+    '--status',
+    'owner_pending',
+    '--ref',
+    'pr:https://github.com/PHLens/noesis/pull/25',
+    '--json',
+  ], { cwd: workspace, check: false });
+  assert.equal(mismatch.status, 1);
+  assert.match(mismatch.stderr, /proposal mismatch/);
+
+  const outsidePath = path.join(workspace, 'outside-proposal.json');
+  fs.copyFileSync(proposalPath, outsidePath);
+  const outside = runNoesis([
+    'owner',
+    'outcome',
+    outsidePath,
+    '--status',
+    'owner_pending',
+    '--ref',
+    'pr:https://github.com/PHLens/noesis/pull/25',
+    '--json',
+  ], { cwd: workspace, check: false });
+  assert.equal(outside.status, 1);
+  assert.match(outside.stderr, /limited to the proposal queue directory/);
+});
+
+
 test('owner command help is available', (t) => {
   const workspace = tempWorkspace(t);
 
   assert.match(runNoesis(['help', 'owner'], { cwd: workspace }).stdout, /Usage: noesis owner/);
   assert.match(runNoesis(['help', 'owner', 'handoff'], { cwd: workspace }).stdout, /Usage: noesis owner handoff/);
+  assert.match(runNoesis(['help', 'owner', 'outcome'], { cwd: workspace }).stdout, /Usage: noesis owner outcome/);
   assert.match(runNoesis(['owner', 'help', 'handoff'], { cwd: workspace }).stdout, /approved proposal/);
+  assert.match(runNoesis(['owner', 'help', 'outcome'], { cwd: workspace }).stdout, /Record owner-side outcome references/);
   assert.match(runNoesis(['owner', 'handoff', '--help'], { cwd: workspace }).stdout, /Noesis-owned artifact only/);
+  assert.match(runNoesis(['owner', 'outcome', '--help'], { cwd: workspace }).stdout, /writes only the proposal artifact/);
   assert.match(runNoesis(['--help'], { cwd: workspace }).stdout, /noesis owner handoff/);
+  assert.match(runNoesis(['--help'], { cwd: workspace }).stdout, /noesis owner outcome/);
 });
