@@ -8,7 +8,12 @@ local report; it does not apply eval changes.
 
 ```bash
 noesis eval handoff <proposal-id-or-path> [--workspace <path>] [--proposal-dir <dir>] [--out <dir>] [--reviewer <name>] [--note <text>] [--force] [--json]
+noesis eval replay [case-file...] [--tmp-root <dir>] [--keep-workspaces] [--json]
 ```
+
+`eval handoff` is the owner handoff surface for approved eval proposals.
+`eval replay`, documented in `docs/eval-replay.md`, is a read-only golden-case
+runner for route/proposal flow.
 
 Defaults:
 
