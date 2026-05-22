@@ -125,6 +125,19 @@ function validGoldenCase() {
 }
 
 
+function ownerStateCase(surfaceDir) {
+  const goldenCase = validGoldenCase();
+  goldenCase.case_id = `route-eval-proposal-with-${surfaceDir.slice(1)}-state`;
+  goldenCase.input.event.event_id = `2026-05-22T03-20-00Z__${surfaceDir.slice(1)}-state`;
+  goldenCase.input.event.summary = `Replay should fail if ${surfaceDir} state appears.`;
+  goldenCase.input.event.routing_hints[0].reason = `Simulate an unexpected ${surfaceDir} workspace surface.`;
+  goldenCase.input.extra_owner_state = [surfaceDir];
+  goldenCase.expect.request.request_id = `2026-05-22T03-20-00Z__${surfaceDir.slice(1)}-state__promote`;
+  goldenCase.expect.proposals[0].proposal_id = `2026-05-22T03-20-00Z__${surfaceDir.slice(1)}-state__promote__01__eval_proposal`;
+  return goldenCase;
+}
+
+
 test('eval replay passes a route/proposal golden case without owner side effects', (t) => {
   const workspace = tempWorkspace(t);
   const tmpRoot = path.join(workspace, 'tmp');
@@ -148,6 +161,29 @@ test('eval replay passes a route/proposal golden case without owner side effects
   assert.equal(fs.existsSync(path.join(workspace, '.pamem')), false);
   assert.equal(fs.existsSync(path.join(workspace, '.loreforge')), false);
   assert.equal(fs.existsSync(path.join(workspace, 'evals')), false);
+});
+
+
+test('eval replay fails when skill visibility owner state appears', (t) => {
+  const workspace = tempWorkspace(t);
+  const casePath = writeGoldenCase(workspace, {
+    schema_version: '0.1',
+    cases: [
+      ownerStateCase('.codex'),
+      ownerStateCase('.claude'),
+    ],
+  });
+
+  const result = runNoesis(['eval', 'replay', casePath, '--tmp-root', path.join(workspace, 'tmp'), '--json'], { cwd: workspace, check: false });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(data.status, 'failed');
+  assert.equal(data.summary.case_count, 2);
+  assert.equal(data.summary.failed_count, 2);
+  assert.equal(data.cases[0].status, 'fail');
+  assert.ok(data.cases[0].checks.find((item) => item.id === 'eval.replay.owner_state' && item.status === 'not_ok'));
+  assert.ok(data.cases[1].checks.find((item) => item.id === 'eval.replay.owner_state' && item.status === 'not_ok'));
 });
 
 

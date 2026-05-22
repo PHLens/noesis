@@ -43,6 +43,10 @@ It does not:
 - create files under `evals/`;
 - mutate stable memory, wiki, skills, or downstream owner state.
 
+The owner-state absence invariant checks `.pamem/`, `.loreforge/`, `.codex/`,
+`.claude/`, `.noesis/owner-handoffs/`, `.noesis/reports/eval-handoffs/`, and
+`evals/` inside the temporary workspace.
+
 `downstream_execution` remains `not-run`. Temporary workspaces are removed by
 default; use `--keep-workspaces` only when inspecting a replay failure.
 
