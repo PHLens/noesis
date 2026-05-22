@@ -205,3 +205,8 @@ work.
 `noesis eval handoff`, documented in `docs/eval-handoff.md`, remains the
 eval-specific report shape for eval-owner action without creating eval files or
 marking the proposal applied.
+
+`noesis compression summary`, documented in `docs/compression-summary.md`, can
+read this proposal queue together with `.noesis/events/` and report repeated or
+stale artifacts as compression candidates. It is read-only and does not create
+compression proposals or owner state.

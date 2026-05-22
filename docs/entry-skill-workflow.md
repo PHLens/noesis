@@ -218,6 +218,7 @@ noesis proposal show <proposal-id-or-path>
 noesis proposal update <proposal-id-or-path> --status approved
 noesis eval handoff <approved-eval-proposal-id-or-path>
 noesis eval replay
+noesis compression summary
 ```
 
 `check` should be read-only. `plan` should write proposal artifacts only.
@@ -228,6 +229,9 @@ noesis eval replay
 not create eval artifacts or run owner eval tooling.
 `eval replay` should run route/proposal golden cases in temporary workspaces
 without owner apply.
+`compression summary` should report repeated or stale learning artifacts as
+Noesis-owned candidates only. It should not create compression proposals or
+owner state.
 
 ## Open Design Questions
 
