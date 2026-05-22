@@ -70,6 +70,7 @@ Implemented:
 - `noesis owner outcome` for linking owner PR/draft/commit/report refs back to proposals
 - `noesis eval handoff` for approved eval-proposal owner handoff reports
 - `noesis eval replay` for route/proposal golden-case replay in temporary workspaces
+- `noesis compression summary` for read-only repeated/stale learning artifact candidates
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
@@ -81,7 +82,7 @@ Not yet implemented:
 
 - skill proposal lifecycle
 - learning review workflow
-- compression loop
+- owner apply adapters for compression candidates
 
 Owned by other systems:
 
@@ -165,6 +166,7 @@ noesis owner handoff <proposal-id-or-path> [--workspace <path>] [--out .noesis/o
 noesis owner outcome <proposal-id-or-path> --status owner_pending --ref pr:<url> [--json]
 noesis eval handoff <proposal-id-or-path> [--workspace <path>] [--out .noesis/reports/eval-handoffs] [--json]
 noesis eval replay [case-file...] [--tmp-root <dir>] [--keep-workspaces] [--json]
+noesis compression summary [--workspace <path>] [--event-dir .noesis/events] [--proposal-dir .noesis/proposals] [--min-group-size 2] [--stale-days 30] [--json]
 noesis skill list [--workspace <path>|--agent-id <id>|--global] [--json]
 noesis skill inspect <name> [--source <path>] [--json]
 noesis skill verify [name] [--json]
@@ -285,6 +287,14 @@ resulting promote request and proposal artifacts to golden expectations, and
 removes the temporary workspace by default. It does not call owner commands or
 create downstream owner artifacts. See `docs/eval-replay.md`.
 
+`noesis compression summary` scans `.noesis/events/` and `.noesis/proposals/`
+for repeated learning events, repeated proposals, and stale pending proposals.
+It emits Noesis-owned compression candidates with
+`suggested_proposal_type=compression_proposal`, reports
+`downstream_execution=not-run`, and writes no state. It does not create
+compression proposals or call pamem, LoreForge, skill-manager, or eval tooling.
+See `docs/compression-summary.md`.
+
 The skill manager manages symlink-based skill visibility in both `.codex/skills/` and `.claude/skills/`. It resolves managed sources under this package's `skills/` first, keeps `~/skills` as an external compatibility source, and accepts explicit `--source <path>` directories that contain `SKILL.md`. It creates relative symlinks, repairs mismatched symlinks, refuses non-symlink conflicts, and removes only visibility links.
 
 The managed `noesis-skill-manager` skill is a thin runtime entrypoint that delegates skill and capability work to `noesis skill ...`; it does not duplicate the CLI implementation.
@@ -306,6 +316,7 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `lib/owner-handoff.mjs`: generic approved-proposal owner handoff CLI
 - `lib/eval-handoff.mjs`: approved eval-proposal handoff report CLI
 - `lib/eval-replay.mjs`: route/proposal golden-case replay CLI
+- `lib/compression.mjs`: read-only compression candidate summary CLI
 - `docs/architecture.md`: current system boundary
 - `docs/entry-skill-workflow.md`: entry-skill and first promote/gate workflow
 - `docs/learning-lifecycle.md`: proposed learning lifecycle
@@ -316,6 +327,7 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `docs/owner-handoff.md`: approved proposal owner-lane handoff contract
 - `docs/eval-handoff.md`: approved eval-proposal handoff report contract
 - `docs/eval-replay.md`: route/proposal golden replay contract
+- `docs/compression-summary.md`: repeated/stale learning artifact compression summary
 - `examples/noesis-config.example.toml`: example Noesis bootstrap manifest
 - `examples/learning-event.example.json`: example learning-event artifact
 - `examples/promote-request.example.json`: example promote-request artifact

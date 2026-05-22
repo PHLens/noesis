@@ -131,6 +131,7 @@ noesis proposal update <proposal-id-or-path> --status approved
 noesis owner handoff <proposal-id-or-path>
 noesis owner outcome <proposal-id-or-path> --status owner_pending --ref pr:<url>
 noesis eval handoff <proposal-id-or-path>
+noesis compression summary
 ```
 
 See `docs/proposal-queue.md`.
@@ -209,6 +210,19 @@ Examples:
 - stale proposals become rejected or superseded
 
 Compression converts accumulated history into maintained artifacts.
+
+The first implemented compression surface is:
+
+```bash
+noesis compression summary [--json]
+```
+
+It is read-only. It scans `.noesis/events/` and `.noesis/proposals/`, groups
+repeated events, repeated proposals, and stale pending proposals, and reports
+Noesis-owned compression candidates. It does not create compression proposals,
+owner handoffs, memory entries, wiki drafts, skills, or eval files.
+
+See `docs/compression-summary.md`.
 
 ## Evaluation
 
