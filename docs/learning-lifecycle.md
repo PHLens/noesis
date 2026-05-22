@@ -144,6 +144,8 @@ reports, or handoff artifacts.
 This is still Noesis control-plane state:
 
 - it writes only the proposal artifact's `outcome` and `outcome_history`;
+- it can append owner progress from pending/materialized work to a terminal
+  merged, rejected, or failed outcome;
 - it does not call owner commands;
 - it does not create owner PRs, wiki drafts, skill changes, memory entries, or
   eval files;

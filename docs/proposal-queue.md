@@ -119,9 +119,14 @@ Supported outcome statuses are `owner_pending`, `materialized`, `merged`,
 `report`, `url`, and `handoff`.
 
 Outcome recording requires a matching owner handoff artifact and at least one
-owner ref. It writes only the proposal JSON file, appends `outcome_history`, and
-keeps `downstream_execution=not-run`. It does not create PRs, drafts, commits,
-reports, memory entries, wiki pages, skills, or eval files.
+owner ref. It writes only the proposal JSON file, updates the current
+`outcome`, appends `outcome_history`, and keeps `downstream_execution=not-run`.
+Allowed progression is `not_applied` to `owner_pending` or `materialized`, then
+to terminal `merged`, `rejected`, or `failed`; `merged`, `rejected`, and
+`failed` cannot be updated. The current outcome keeps accumulated owner refs,
+while each history entry records the refs added by that command. It does not
+create PRs, drafts, commits, reports, memory entries, wiki pages, skills, or
+eval files.
 
 ## JSON Envelope
 

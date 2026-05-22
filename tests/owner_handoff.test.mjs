@@ -323,7 +323,7 @@ test('owner outcome can record merged owner refs without downstream execution', 
 });
 
 
-test('owner outcome refuses missing handoff, missing refs, and second records', (t) => {
+test('owner outcome refuses missing handoff, missing refs, invalid transitions, and terminal updates', (t) => {
   const workspace = tempWorkspace(t);
   const { proposalId, proposalPath } = createProposal(workspace);
 
@@ -353,7 +353,7 @@ test('owner outcome refuses missing handoff, missing refs, and second records', 
   assert.equal(missingRef.status, 1);
   assert.match(missingRef.stderr, /requires at least one --ref/);
 
-  runNoesis([
+  const pendingResult = runNoesis([
     'owner',
     'outcome',
     proposalId,
@@ -363,8 +363,25 @@ test('owner outcome refuses missing handoff, missing refs, and second records', 
     'pr:https://github.com/PHLens/noesis/pull/25',
     '--json',
   ], { cwd: workspace });
+  const pendingProposal = JSON.parse(fs.readFileSync(proposalPath, 'utf8'));
+  assert.equal(JSON.parse(pendingResult.stdout).outcome_status, 'owner_pending');
+  assert.equal(pendingProposal.outcome.status, 'owner_pending');
+  assert.equal(pendingProposal.outcome_history.length, 1);
 
-  const second = runNoesis([
+  const duplicatePending = runNoesis([
+    'owner',
+    'outcome',
+    proposalPath,
+    '--status',
+    'owner_pending',
+    '--ref',
+    'pr:https://github.com/PHLens/noesis/pull/25',
+    '--json',
+  ], { cwd: workspace, check: false });
+  assert.equal(duplicatePending.status, 1);
+  assert.match(duplicatePending.stderr, /invalid owner outcome transition/);
+
+  const merged = runNoesis([
     'owner',
     'outcome',
     proposalPath,
@@ -373,9 +390,30 @@ test('owner outcome refuses missing handoff, missing refs, and second records', 
     '--ref',
     'commit:abc1234',
     '--json',
+  ], { cwd: workspace });
+  const mergedData = JSON.parse(merged.stdout);
+  const mergedProposal = JSON.parse(fs.readFileSync(proposalPath, 'utf8'));
+  assert.equal(mergedData.outcome_status, 'merged');
+  assert.equal(mergedProposal.outcome.status, 'merged');
+  assert.deepEqual(mergedProposal.outcome.refs.map((ref) => ref.kind), ['handoff', 'pr', 'commit']);
+  assert.equal(mergedProposal.outcome.refs[1].ref, 'https://github.com/PHLens/noesis/pull/25');
+  assert.equal(mergedProposal.outcome.refs[2].ref, 'abc1234');
+  assert.equal(mergedProposal.outcome_history.length, 2);
+  assert.equal(mergedProposal.outcome_history[1].previous_status, 'owner_pending');
+  assert.deepEqual(mergedProposal.outcome_history[1].refs.map((ref) => ref.kind), ['handoff', 'commit']);
+
+  const terminalUpdate = runNoesis([
+    'owner',
+    'outcome',
+    proposalPath,
+    '--status',
+    'failed',
+    '--ref',
+    'report:post-merge-failure',
+    '--json',
   ], { cwd: workspace, check: false });
-  assert.equal(second.status, 1);
-  assert.match(second.stderr, /can only be recorded once/);
+  assert.equal(terminalUpdate.status, 1);
+  assert.match(terminalUpdate.stderr, /already terminal/);
 });
 
 

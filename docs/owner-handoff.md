@@ -68,9 +68,13 @@ Supported outcome statuses:
 Supported ref kinds are `pr`, `draft`, `commit`, `report`, `url`, and `handoff`.
 
 `owner outcome` requires an existing matching handoff artifact. It writes only
-the original proposal JSON file, replacing `outcome.status=not_applied` with an
-owner outcome record and appending `outcome_history`. It does not call owner
-commands, mutate the handoff artifact, create owner PRs or drafts, or apply
+the original proposal JSON file, updates the current owner outcome record, and
+appends `outcome_history`. Non-terminal outcomes can progress from
+`not_applied` to `owner_pending` or `materialized`, and then to a terminal
+`merged`, `rejected`, or `failed` record. The current outcome keeps accumulated
+owner refs, while each history entry records the refs added by that command.
+Terminal outcomes cannot be updated. The command does not call owner commands,
+mutate the handoff artifact, create owner PRs or drafts, or apply
 memory/wiki/skill/eval changes. `downstream_execution` remains `not-run`.
 
 ## JSON Envelope

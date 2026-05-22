@@ -266,9 +266,11 @@ packages compact proposal context for the owner lane. See
 `docs/owner-handoff.md`.
 
 `noesis owner outcome` records owner-side PR, draft, commit, or report refs
-back onto a handed-off proposal. It writes only the proposal outcome record and
-keeps `downstream_execution=not-run`; it does not create owner artifacts or
-apply memory, wiki, skill, or eval changes. See `docs/owner-handoff.md`.
+back onto a handed-off proposal. It can append progress from pending owner work
+to a terminal merged, rejected, or failed outcome. It writes only the proposal
+outcome record and keeps `downstream_execution=not-run`; it does not create
+owner artifacts or apply memory, wiki, skill, or eval changes. See
+`docs/owner-handoff.md`.
 
 `noesis eval handoff` consumes an approved `eval_proposal` and writes a
 Noesis-owned handoff report under `.noesis/reports/eval-handoffs/`. It does not
