@@ -239,6 +239,24 @@ test('compression summary supports custom thresholds and command help', (t) => {
 });
 
 
+test('compression summary groups non-ASCII learning summaries', (t) => {
+  const workspace = tempWorkspace(t);
+  writeEvent(workspace, '2026-05-22T02-00-00Z__slock-runtime-rule-1', {
+    summary: 'Slock runtime 后续回复到 thread 里',
+  });
+  writeEvent(workspace, '2026-05-22T02-01-00Z__slock-runtime-rule-2', {
+    summary: 'Slock runtime 后续回复到 thread 里',
+  });
+
+  const result = runNoesis(['compression', 'summary', '--json'], { cwd: workspace });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.summary.repeated_event_candidate_count, 1);
+  assert.equal(data.candidates[0].kind, 'repeated_events');
+  assert.match(data.candidates[0].summary, /Slock runtime/);
+});
+
+
 function assertNoOwnerState(workspace) {
   for (const relative of [
     '.pamem',
