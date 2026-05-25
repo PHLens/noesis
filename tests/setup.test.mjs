@@ -148,6 +148,29 @@ process.exit(2);
 }
 
 
+function makeGitRemote(source, remote) {
+  runGit(['init'], source);
+  runGit(['config', 'user.name', 'Noesis Test'], source);
+  runGit(['config', 'user.email', 'noesis-test@example.com'], source);
+  runGit(['add', '.'], source);
+  runGit(['commit', '-m', 'initial'], source);
+  runGit(['init', '--bare', remote], path.dirname(remote));
+  runGit(['symbolic-ref', 'HEAD', 'refs/heads/main'], remote);
+  runGit(['remote', 'add', 'origin', remote], source);
+  runGit(['push', 'origin', 'HEAD:main'], source);
+  return remote;
+}
+
+
+function runGit(args, cwd) {
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+  if (result.status !== 0) {
+    assert.fail(`git ${args.join(' ')} failed with ${result.status}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
+  }
+  return result;
+}
+
+
 test('setup bootstraps Noesis skills and local owner components', (t) => {
   const root = tempRoot(t);
   const home = path.join(root, 'home');
@@ -226,6 +249,197 @@ test('setup can run LoreForge owner setup when wiki and domain are provided', (t
 });
 
 
+test('setup discovers local component sources without explicit component flags', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  const wiki = path.join(root, 'wiki');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  const pamem = makePamemComponent(root);
+  const loreforge = makeLoreForgeComponent(root);
+
+  const result = runNoesis([
+    'setup',
+    '--workspace', workspace,
+    '--profile', 'researcher',
+    '--loreforge-wiki', wiki,
+    '--loreforge-domain', 'research',
+    '--json',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      NOESIS_PAMEM_ROOT: pamem,
+      NOESIS_LOREFORGE_ROOT: loreforge,
+    },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.doctor.status, 'ok');
+  assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'env'), true);
+  assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'loreforge' && action.action === 'env'), true);
+  assert.equal(fs.realpathSync(path.join(workspace, '.codex', 'skills', 'loreforge')), path.join(loreforge, 'skills', 'loreforge'));
+  assert.equal(fs.existsSync(path.join(wiki, 'Domains', 'research', 'index.md')), true);
+
+  const config = fs.readFileSync(path.join(workspace, '.noesis', 'config.toml'), 'utf8');
+  assert.match(config, /component_source = ".*pamem/);
+  assert.match(config, /component_source = ".*LoreForge/);
+});
+
+
+test('setup can install missing components into a managed component directory', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  const wiki = path.join(root, 'wiki');
+  const componentDir = path.join(root, 'components');
+  const remoteRoot = path.join(root, 'remotes');
+  const pamemRemote = path.join(remoteRoot, 'pamem.git');
+  const loreforgeRemote = path.join(remoteRoot, 'LoreForge.git');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  fs.mkdirSync(remoteRoot, { recursive: true });
+  const pamemSource = makePamemComponent(path.join(root, 'sources'));
+  const loreforgeSource = makeLoreForgeComponent(path.join(root, 'sources'));
+  makeGitRemote(pamemSource, pamemRemote);
+  makeGitRemote(loreforgeSource, loreforgeRemote);
+
+  const result = runNoesis([
+    'setup',
+    '--workspace', workspace,
+    '--profile', 'researcher',
+    '--component-dir', componentDir,
+    '--install-components',
+    '--loreforge-wiki', wiki,
+    '--loreforge-domain', 'research',
+    '--json',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      NOESIS_PAMEM_REPO: pamemRemote,
+      NOESIS_LOREFORGE_REPO: loreforgeRemote,
+      NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search'),
+    },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.doctor.status, 'ok');
+  assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'installed'), true);
+  assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'loreforge' && action.action === 'installed'), true);
+  assert.equal(fs.existsSync(path.join(componentDir, 'pamem', 'bin', 'pamem.mjs')), true);
+  assert.equal(fs.existsSync(path.join(componentDir, 'LoreForge', 'bin', 'loreforge')), true);
+  assert.equal(fs.existsSync(path.join(wiki, 'Domains', 'research', 'index.md')), true);
+});
+
+
+test('setup validates LoreForge option shape before installing components', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  const componentDir = path.join(root, 'components');
+  const remoteRoot = path.join(root, 'remotes');
+  const pamemRemote = path.join(remoteRoot, 'pamem.git');
+  const loreforgeRemote = path.join(remoteRoot, 'LoreForge.git');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  fs.mkdirSync(remoteRoot, { recursive: true });
+  const pamemSource = makePamemComponent(path.join(root, 'sources'));
+  const loreforgeSource = makeLoreForgeComponent(path.join(root, 'sources'));
+  makeGitRemote(pamemSource, pamemRemote);
+  makeGitRemote(loreforgeSource, loreforgeRemote);
+
+  const result = runNoesis([
+    'setup',
+    '--workspace', workspace,
+    '--profile', 'researcher',
+    '--component-dir', componentDir,
+    '--install-components',
+    '--loreforge-wiki', path.join(root, 'wiki'),
+    '--json',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      NOESIS_PAMEM_REPO: pamemRemote,
+      NOESIS_LOREFORGE_REPO: loreforgeRemote,
+      NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search'),
+    },
+    check: false,
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /--loreforge-wiki and --loreforge-domain must be provided together/);
+  assert.equal(fs.existsSync(componentDir), false);
+  assert.equal(fs.existsSync(path.join(workspace, '.noesis')), false);
+  assert.equal(fs.existsSync(path.join(workspace, '.pamem')), false);
+});
+
+
+test('setup update only runs for git component checkouts', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  const pamem = makePamemComponent(root);
+
+  const result = runNoesis([
+    'setup',
+    '--workspace', workspace,
+    '--with', 'pamem',
+    '--profile', 'coder',
+    '--component', `pamem=${pamem}`,
+    '--update-components',
+    '--json',
+  ], { cwd: root, home });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'update-skipped' && action.reason === 'not-a-git-checkout'), true);
+});
+
+
+test('setup can update a discovered managed component checkout', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  const componentDir = path.join(root, 'components');
+  const remoteRoot = path.join(root, 'remotes');
+  const pamemRemote = path.join(remoteRoot, 'pamem.git');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  fs.mkdirSync(componentDir, { recursive: true });
+  fs.mkdirSync(remoteRoot, { recursive: true });
+  const pamemSource = makePamemComponent(path.join(root, 'sources'));
+  makeGitRemote(pamemSource, pamemRemote);
+  runGit(['clone', pamemRemote, path.join(componentDir, 'pamem')], root);
+  fs.writeFileSync(path.join(pamemSource, 'VERSION'), '2\n');
+  runGit(['add', 'VERSION'], pamemSource);
+  runGit(['commit', '-m', 'update version'], pamemSource);
+  runGit(['push', 'origin', 'HEAD:main'], pamemSource);
+
+  const result = runNoesis([
+    'setup',
+    '--workspace', workspace,
+    '--with', 'pamem',
+    '--profile', 'coder',
+    '--component-dir', componentDir,
+    '--update-components',
+    '--json',
+  ], { cwd: root, home, env: { NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search') } });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'managed'), true);
+  assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'updated'), true);
+  assert.equal(fs.readFileSync(path.join(componentDir, 'pamem', 'VERSION'), 'utf8'), '2\n');
+});
+
+
 test('setup can use an explicit LoreForge registry path', (t) => {
   const root = tempRoot(t);
   const home = path.join(root, 'home');
@@ -273,10 +487,10 @@ test('setup requires explicit LoreForge component source for LoreForge bootstrap
     '--loreforge-wiki', path.join(root, 'wiki'),
     '--loreforge-domain', 'research',
     '--json',
-  ], { cwd: root, home, check: false });
+  ], { cwd: root, home, env: { NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search') }, check: false });
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /LoreForge setup requires --component loreforge=/);
+  assert.match(result.stderr, /LoreForge setup requires a LoreForge component source/);
 });
 
 
