@@ -150,7 +150,7 @@ The first implemented command families are bootstrap and skill management:
 
 ```bash
 noesis init [--workspace <path>] [--with pamem,loreforge|none] [--force] [--json]
-noesis setup [--workspace <path>] --profile <role> [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--pamem-runtime cli|slock] [--loreforge-wiki <path>] [--loreforge-domain <name>] [--loreforge-registry <path>] [--json]
+noesis setup [--workspace <path>] --profile <role> [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--component-dir <path>] [--install-components] [--update-components] [--pamem-runtime cli|slock] [--loreforge-wiki <path>] [--loreforge-domain <name>] [--loreforge-registry <path>] [--json]
 noesis doctor [--workspace <path>] [--json]
 noesis config show [--workspace <path>] [--json]
 noesis event check .noesis/events/<id>.json [--json]
@@ -178,11 +178,11 @@ The bootstrap commands are intentionally conservative:
 
 - `init` creates `.noesis/config.toml` and Noesis-owned local state directories;
 - `setup` is the user-facing one-step local bootstrap: it runs Noesis init,
-  installs required entry skills, wires explicit local pamem/LoreForge
-  component sources when provided, calls pamem's component-facing setup wrapper
-  with the requested profile/runtime when pamem is enabled, optionally calls
-  LoreForge's component-facing setup wrapper when a wiki path and domain are
-  provided, and finishes with doctor;
+  installs required entry skills, resolves local pamem/LoreForge component
+  sources, calls pamem's component-facing setup wrapper with the requested
+  profile/runtime when pamem is enabled, optionally calls LoreForge's
+  component-facing setup wrapper when a wiki path and domain are provided, and
+  finishes with doctor;
 - `doctor` is read-only for Noesis-owned state, reports umbrella readiness
   across Noesis, entry skills, pamem, LoreForge, and skill-manager, treats
   missing downstream readiness as warnings unless the manifest itself is
@@ -192,9 +192,28 @@ The bootstrap commands are intentionally conservative:
 
 They create Noesis-owned bootstrap state only. pamem memory, LoreForge wiki
 content and skill changes remain outside this command surface.
-Generated manifests enable pamem by default. LoreForge is enabled when the
-`loreforge` CLI is discoverable; otherwise it remains declared but disabled.
-For a source checkout workflow, pass local component roots explicitly:
+Generated manifests enable pamem by default. LoreForge is enabled when setup can
+resolve a component source or when the `loreforge` CLI is discoverable;
+otherwise it remains declared but disabled.
+
+The main setup path keeps component handling inside `noesis setup`; there is no
+separate `noesis component` command. Resolution order is:
+
+1. explicit `--component pamem=/path` / `--component loreforge=/path`;
+2. `NOESIS_PAMEM_ROOT` / `NOESIS_LOREFORGE_ROOT`;
+3. nearby checkouts such as `./pamem`, `../pamem`, `../LoreForge`,
+   `~/plugins/pamem`, and `~/LoreForge`;
+4. managed checkouts under `--component-dir`, defaulting to
+   `${XDG_DATA_HOME:-~/.local/share}/noesis/components`.
+
+By default setup only discovers existing checkouts. Pass `--install-components`
+to clone missing enabled components into `--component-dir`; pass
+`--update-components` to run `git pull --ff-only` in resolved git checkouts.
+Use explicit `--component name=path` when a machine has multiple checkouts and
+you want deterministic selection.
+
+For a source checkout workflow, local component roots can still be passed
+explicitly:
 
 ```bash
 noesis setup --workspace <workspace> \

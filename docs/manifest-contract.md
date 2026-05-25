@@ -202,7 +202,9 @@ It leaves unchanged:
 ## Init Semantics
 
 `noesis init` creates Noesis-owned local state. Delegating downstream setup is a
-future extension and requires an explicit command or flag.
+separate `noesis setup` phase. Component discovery and local component
+installation/update are setup behavior, not a separate `noesis component`
+command surface.
 
 Allowed:
 
@@ -210,12 +212,23 @@ Allowed:
 - create `.noesis/events/`, `.noesis/promote-requests/`, `.noesis/proposals/`, and `.noesis/reports/`;
 - run read-only doctor checks after initialization.
 
+`noesis setup` may:
+
+- install Noesis entry skills;
+- resolve explicit, environment-provided, nearby, or managed local component
+  sources;
+- clone missing enabled components when the user passes `--install-components`;
+- fast-forward component git checkouts when the user passes
+  `--update-components`;
+- call component-owned setup/install/repair entrypoints with explicit arguments;
+- write component command pointers into `.noesis/config.toml`;
+- run read-only doctor checks after initialization.
+
 Requires explicit flags or review:
 
-- calling downstream owner init commands;
-- installing missing CLIs;
+- installing missing component checkouts;
+- updating component checkouts;
 - enabling runtime capabilities;
-- adding skills;
 - overwriting existing config files.
 
 Out of scope:
