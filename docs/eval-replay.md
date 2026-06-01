@@ -10,11 +10,19 @@ owner apply command.
 noesis eval replay [case-file...] [--tmp-root <dir>] [--keep-workspaces] [--json]
 ```
 
-When no case file is provided, Noesis uses the packaged golden case:
+When no case file is provided, Noesis uses the packaged golden case set:
 
 ```text
 examples/eval-replay.route-proposal.golden.json
 ```
+
+The packaged set covers the four owner lanes that the learning loop can route
+to today:
+
+- memory proposals for the pamem owner lane;
+- wiki proposals for the LoreForge owner lane;
+- skill proposals for the skill-manager owner lane;
+- eval proposals for the eval owner lane.
 
 Each case contains:
 
@@ -64,8 +72,8 @@ default; use `--keep-workspaces` only when inspecting a replay failure.
   "side_effects": "temporary-workspace-removed",
   "writes": [],
   "summary": {
-    "case_count": 1,
-    "passed_count": 1,
+    "case_count": 4,
+    "passed_count": 4,
     "failed_count": 0,
     "error_count": 0,
     "warning_count": 0,

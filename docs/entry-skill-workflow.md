@@ -221,6 +221,19 @@ noesis eval replay
 noesis compression summary
 ```
 
+Noesis is not the everyday task runner. A user should enter this flow only when
+the runtime produces a durable learning signal:
+
+- a stable user preference, correction, or workflow rule;
+- a repeated failure that should become memory, a skill, or an eval;
+- source-backed knowledge that belongs in LoreForge;
+- a skill or eval candidate that needs review;
+- stale or repeated learning artifacts that should be compressed.
+
+Ordinary task execution stays with the agent runtime. Noesis owns the bootstrap,
+routing, proposal, review, handoff, outcome, and replay control plane around
+durable heuristic updates.
+
 `check` should be read-only. `plan` should write proposal artifacts only.
 `proposal list`, `proposal summary`, and `proposal show` should be read-only.
 `proposal update` should write only proposal review metadata.

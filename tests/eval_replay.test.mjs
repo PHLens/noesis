@@ -195,8 +195,20 @@ test('eval replay can use packaged default golden case', (t) => {
   const data = JSON.parse(result.stdout);
 
   assert.equal(data.status, 'ok');
-  assert.equal(data.summary.case_count, 1);
-  assert.equal(data.cases[0].case_id, 'route-eval-proposal-basic');
+  assert.equal(data.summary.case_count, 4);
+  assert.deepEqual(data.cases.map((goldenCase) => goldenCase.case_id), [
+    'route-memory-proposal-basic',
+    'route-wiki-proposal-basic',
+    'route-skill-proposal-basic',
+    'route-eval-proposal-basic',
+  ]);
+  assert.deepEqual(data.cases.map((goldenCase) => goldenCase.actual.proposal_types[0]), [
+    'memory_proposal',
+    'wiki_proposal',
+    'skill_proposal',
+    'eval_proposal',
+  ]);
+  assert(data.cases.every((goldenCase) => goldenCase.actual.downstream_execution === 'not-run'));
 });
 
 
