@@ -46,8 +46,10 @@ function makePamemComponent(root) {
     `#!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 const [command, ...args] = process.argv.slice(2);
 const workspace = args[0] || process.cwd();
+const repoRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 function value(name) {
   const index = args.indexOf(name);
   return index === -1 ? '' : args[index + 1];
@@ -61,14 +63,17 @@ function install(root, agentHome) {
   fs.mkdirSync(path.join(root, '.codex', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(root, '.codex'), { recursive: true });
   fs.writeFileSync(path.join(root, '.codex', 'config.toml'), '[features]\\nhooks = true\\n');
-  fs.writeFileSync(path.join(root, '.codex', 'hooks.json'), JSON.stringify({ hooks: { SessionStart: [{ matcher: 'startup|resume', hooks: [{ type: 'command', command: agentHome ? process.cwd() + '/scripts/memory-session-start.sh' : '.pamem/scripts/memory-session-start.sh' }] }] } }, null, 2));
+  fs.writeFileSync(path.join(root, '.codex', 'hooks.json'), JSON.stringify({ hooks: { SessionStart: [{ matcher: 'startup|resume', hooks: [
+    { type: 'command', command: agentHome ? repoRoot + '/scripts/memory-session-start.sh' : '.pamem/scripts/memory-session-start.sh' },
+    { type: 'command', command: '/custom/tools/memory-session-start.sh' }
+  ] }] } }, null, 2));
   fs.mkdirSync(agentHome ? root : path.join(root, 'notes'), { recursive: true });
   fs.writeFileSync(agentHome ? path.join(root, 'current-task.md') : path.join(root, 'notes', 'current-task.md'), '# Current\\n');
   fs.writeFileSync(agentHome ? path.join(root, 'work-log.md') : path.join(root, 'notes', 'work-log.md'), '# Work\\n');
   fs.mkdirSync(path.join(root, '.codex', 'skills'), { recursive: true });
   for (const name of ['memory-lint', 'memory-rule']) {
     const link = path.join(root, '.codex', 'skills', name);
-    try { fs.symlinkSync(path.relative(path.dirname(link), path.join(process.cwd(), 'skills', name)), link); } catch {}
+    try { fs.symlinkSync(path.relative(path.dirname(link), path.join(repoRoot, 'skills', name)), link); } catch {}
   }
 }
 if (command === 'setup') {
@@ -171,6 +176,32 @@ test('launch can bind an existing Slock workspace without starting a process', (
 });
 
 
+test('invalid slock-only launch options fail before setup side effects', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'slock-workspace');
+  const memory = path.join(root, 'memory');
+  fs.mkdirSync(home);
+  const pamem = makePamemComponent(root);
+
+  const result = runNoesis([
+    'launch',
+    '--profile', 'researcher',
+    '--runtime', 'slock',
+    '--workspace', workspace,
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--memory-repo', memory,
+    '--print-env',
+  ], { cwd: root, home, check: false });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /runtime slock does not emit CLI launcher environment/);
+  assert.equal(fs.existsSync(workspace), false);
+  assert.equal(fs.existsSync(memory), false);
+});
+
+
 test('list and remove expose Noesis runtime management surface', (t) => {
   const root = tempRoot(t);
   const home = path.join(root, 'home');
@@ -199,6 +230,8 @@ test('list and remove expose Noesis runtime management surface', (t) => {
   assert.equal(fs.existsSync(path.join(agentHome, 'config.toml')), true);
   assert.equal(fs.existsSync(path.join(agentHome, '.codex', 'skills', 'memory-lint')), false);
   assert.equal(fs.existsSync(path.join(agentHome, '.codex', 'skills', 'memory-rule')), false);
+  const hooks = JSON.parse(fs.readFileSync(path.join(agentHome, '.codex', 'hooks.json'), 'utf8'));
+  assert.deepEqual(hooks.hooks.SessionStart[0].hooks.map((hook) => hook.command), ['/custom/tools/memory-session-start.sh']);
 });
 
 
