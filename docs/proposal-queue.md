@@ -43,6 +43,19 @@ It reports `downstream_execution=not-run` and `writes=[]`. A warning summary is
 not an apply signal; it only tells reviewers which proposal artifacts need
 attention.
 
+The summary also emits a structured `review_queue`. Each item turns a warning
+into the next review action, for example:
+
+- `repair_artifact` for invalid or unsupported proposal JSON;
+- `review_proposal` for stale or high-risk pending proposals;
+- `handoff_owner` for approved proposals that need an owner handoff artifact;
+- `record_owner_outcome` for handed-off proposals waiting on owner-side PR,
+  draft, commit, or report refs.
+
+The suggested commands remain proposal/handoff commands. They are guidance for
+the human reviewer; summary itself never creates handoffs, records outcomes, or
+calls pamem, LoreForge, skill-manager, or eval tooling.
+
 ## Artifact Statuses
 
 Supported review statuses:
@@ -169,12 +182,20 @@ eval files.
     },
     "pending_review_count": 1,
     "approved_count": 1,
+    "review_queue_count": 1,
     "warning_count": 1,
     "error_count": 0
   },
   "downstream_execution": "not-run",
   "writes": [],
-  "warnings": []
+  "warnings": [],
+  "review_queue": [
+    {
+      "priority": "p1",
+      "action": "handoff_owner",
+      "suggested_command": "noesis owner handoff <proposal-id> --json"
+    }
+  ]
 }
 ```
 

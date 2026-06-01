@@ -161,11 +161,30 @@ test('proposal summary reports queue warnings without writing state', (t) => {
   assert.equal(data.summary.high_risk_pending_count, 1);
   assert.equal(data.summary.stale_count, 1);
   assert.equal(data.summary.error_count, 1);
+  assert.equal(data.summary.review_queue_count, 3);
   assert.equal(data.downstream_execution, 'not-run');
   assert.deepEqual(data.writes, []);
   assert(data.warnings.some((warning) => warning.code === 'high_risk_pending_review' && warning.proposal_id === proposalId));
   assert(data.warnings.some((warning) => warning.code === 'stale_pending_review' && warning.proposal_id === proposalId));
   assert(data.warnings.some((warning) => warning.code === 'invalid_artifact' && warning.path === invalidPath));
+  assert(data.review_queue.some((item) => (
+    item.code === 'invalid_artifact'
+    && item.action === 'repair_artifact'
+    && item.priority === 'p0'
+    && item.path === invalidPath
+  )));
+  assert(data.review_queue.some((item) => (
+    item.code === 'high_risk_pending_review'
+    && item.action === 'review_proposal'
+    && item.priority === 'p1'
+    && item.proposal_id === proposalId
+  )));
+  assert(data.review_queue.some((item) => (
+    item.code === 'stale_pending_review'
+    && item.action === 'review_proposal'
+    && item.priority === 'p2'
+    && item.proposal_id === proposalId
+  )));
   assert(data.proposals.some((proposal) => proposal.proposal_id === proposalId && proposal.warning_count === 2));
   assert(data.proposals.some((proposal) => proposal.path === invalidPath && proposal.warning_count === 1));
   assert.deepEqual(after, before);
@@ -185,7 +204,14 @@ test('proposal summary reports approved owner handoff pending', (t) => {
   assert.equal(data.status, 'warning');
   assert.equal(data.summary.approved_count, 1);
   assert.equal(data.summary.owner_handoff_count, 1);
+  assert.equal(data.summary.review_queue_count, 1);
   assert(data.warnings.some((warning) => warning.code === 'approved_owner_handoff_pending' && warning.proposal_id === proposalId));
+  assert(data.review_queue.some((item) => (
+    item.code === 'approved_owner_handoff_pending'
+    && item.action === 'handoff_owner'
+    && item.suggested_command.includes('noesis owner handoff')
+    && item.proposal_id === proposalId
+  )));
   assert.deepEqual(data.writes, []);
   assert.deepEqual(after, before);
 });
@@ -216,8 +242,55 @@ test('proposal summary reports owner outcome pending without unsupported outcome
   assert.equal(data.summary.owner_outcome_pending_count, 1);
   assert.equal(data.summary.owner_handoff_count, 0);
   assert.equal(data.summary.warning_count, 1);
+  assert.equal(data.summary.review_queue_count, 1);
   assert(data.warnings.some((warning) => warning.code === 'owner_outcome_pending' && warning.proposal_id === proposalId));
+  assert(data.review_queue.some((item) => (
+    item.code === 'owner_outcome_pending'
+    && item.action === 'record_owner_outcome'
+    && item.suggested_command.includes('noesis owner outcome')
+    && item.proposal_id === proposalId
+  )));
   assert(!data.warnings.some((warning) => warning.code === 'unsupported_outcome_status'));
+  assert.deepEqual(data.writes, []);
+  assert.deepEqual(after, before);
+});
+
+
+test('proposal summary keeps materialized owner outcomes in the review queue', (t) => {
+  const workspace = tempWorkspace(t);
+  const { proposalId } = createProposal(workspace);
+  runNoesis(['proposal', 'update', proposalId, '--status', 'approved'], { cwd: workspace });
+  runNoesis(['owner', 'handoff', proposalId, '--json'], { cwd: workspace });
+  runNoesis([
+    'owner',
+    'outcome',
+    proposalId,
+    '--status',
+    'materialized',
+    '--ref',
+    'draft:memory-owner-review',
+    '--json',
+  ], { cwd: workspace });
+  const before = snapshot(workspace);
+
+  const result = runNoesis(['proposal', 'summary', '--json'], { cwd: workspace });
+  const after = snapshot(workspace);
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'warning');
+  assert.equal(data.summary.materialized_count, 1);
+  assert.equal(data.summary.owner_outcome_pending_count, 1);
+  assert.equal(data.summary.review_queue_count, 1);
+  assert(data.warnings.some((warning) => (
+    warning.code === 'owner_outcome_pending'
+    && warning.proposal_id === proposalId
+    && /materialized/.test(warning.message)
+  )));
+  assert(data.review_queue.some((item) => (
+    item.code === 'owner_outcome_pending'
+    && item.action === 'record_owner_outcome'
+    && item.proposal_id === proposalId
+  )));
   assert.deepEqual(data.writes, []);
   assert.deepEqual(after, before);
 });
@@ -247,6 +320,7 @@ test('proposal summary counts merged owner outcomes as terminal evidence', (t) =
   assert.equal(data.summary.owner_handoff_count, 0);
   assert.equal(data.summary.owner_outcome_pending_count, 0);
   assert.deepEqual(data.warnings, []);
+  assert.deepEqual(data.review_queue, []);
 });
 
 
@@ -338,6 +412,7 @@ test('proposal command help is available', (t) => {
   assert.match(runNoesis(['help', 'proposal', 'update'], { cwd: workspace }).stdout, /Usage: noesis proposal update/);
   assert.match(runNoesis(['proposal', 'help', 'list'], { cwd: workspace }).stdout, /List proposal artifacts/);
   assert.match(runNoesis(['proposal', 'help', 'summary'], { cwd: workspace }).stdout, /Summarize proposal queue/);
+  assert.match(runNoesis(['proposal', 'help', 'summary'], { cwd: workspace }).stdout, /review queue next steps/);
   assert.match(runNoesis(['proposal', 'list', '--help'], { cwd: workspace }).stdout, /read-only/);
   assert.match(runNoesis(['proposal', 'summary', '--help'], { cwd: workspace }).stdout, /read-only/);
   assert.match(runNoesis(['proposal', 'update', '--help'], { cwd: workspace }).stdout, /review metadata/);

@@ -1,87 +1,353 @@
 {
   "schema_version": "0.1",
-  "case_id": "route-eval-proposal-basic",
-  "description": "A valid learning event routes into one eval proposal without owner execution.",
-  "input": {
-    "event": {
+  "cases": [
+    {
       "schema_version": "0.1",
-      "event_id": "2026-05-22T02-30-00Z__route-eval-proposal-basic",
-      "created_at": "2026-05-22T02:30:00Z",
-      "workspace": "$WORKSPACE",
-      "kind": "repeated_workflow",
-      "summary": "Operator wants the event-to-proposal route flow covered by a golden replay.",
-      "source_refs": [
-        {
-          "kind": "slock_thread",
-          "ref": "#heuristic-system:8aa1f39e",
-          "summary": "Task thread requesting eval/replay golden coverage for route and proposal flow."
+      "case_id": "route-memory-proposal-basic",
+      "description": "A valid learning event routes into one memory_proposal without owner execution.",
+      "input": {
+        "event": {
+          "schema_version": "0.1",
+          "event_id": "2026-05-22T02-30-00Z__route-memory-proposal-basic",
+          "created_at": "2026-05-22T02:30:00Z",
+          "workspace": "$WORKSPACE",
+          "kind": "repeated_workflow",
+          "summary": "Operator wants the memory owner lane covered by a golden replay.",
+          "source_refs": [
+            {
+              "kind": "slock_thread",
+              "ref": "#heuristic-system:8aa1f39e",
+              "summary": "Task thread requesting eval/replay golden coverage for route and proposal flow."
+            }
+          ],
+          "case": {
+            "situation": "A learning event with memory routing hints should become a reviewable memory proposal.",
+            "observed": "The route command composes event promote and promote plan gates.",
+            "desired": "Replay verifies the route result stays proposal-only and owner-safe.",
+            "evidence": "Golden replay should catch route or proposal schema drift before owner handoff."
+          },
+          "impact": {
+            "severity": "medium",
+            "recurrence": "repeated",
+            "confidence": "high"
+          },
+          "routing_hints": [
+            {
+              "candidate_kind": "memory",
+              "target_surface": "pamem",
+              "review_required": true,
+              "reason": "The memory owner lane should stay proposal-only until owner review."
+            }
+          ]
         }
-      ],
-      "case": {
-        "situation": "A learning event with eval routing hints should become a reviewable eval proposal.",
-        "observed": "The route command composes event promote and promote plan gates.",
-        "desired": "Replay verifies the route result stays proposal-only and owner-safe.",
-        "evidence": "Golden replay should catch route or proposal schema drift before owner handoff."
       },
-      "impact": {
-        "severity": "medium",
-        "recurrence": "repeated",
-        "confidence": "high"
-      },
-      "routing_hints": [
-        {
-          "candidate_kind": "eval",
-          "target_surface": "evals",
-          "review_required": true,
-          "reason": "The route behavior should be protected as a regression case."
-        }
-      ]
-    }
-  },
-  "expect": {
-    "status": "ok",
-    "downstream_execution": "not-run",
-    "summary": {
-      "request_count": 1,
-      "proposal_count": 1,
-      "error_count": 0
-    },
-    "request": {
-      "request_id": "2026-05-22T02-30-00Z__route-eval-proposal-basic__promote",
-      "workspace": "$WORKSPACE",
-      "gate_policy": {
-        "mode": "proposal_only",
-        "allow_apply": false,
-        "review_required": true
-      },
-      "requested_outputs": [
-        {
-          "kind": "eval_proposal",
-          "target_owner": "evals",
-          "review_required": true
-        }
-      ]
-    },
-    "proposals": [
-      {
-        "proposal_id": "2026-05-22T02-30-00Z__route-eval-proposal-basic__promote__01__eval_proposal",
-        "proposal_type": "eval_proposal",
-        "status": "pending_review",
-        "target_owner": "evals",
-        "target_surface": "evals",
-        "automation_boundary": {
-          "mode": "proposal_only",
-          "allow_apply": false,
-          "downstream_execution": "not-run",
-          "owner_apply_required": true
+      "expect": {
+        "status": "ok",
+        "downstream_execution": "not-run",
+        "summary": {
+          "request_count": 1,
+          "proposal_count": 1,
+          "error_count": 0
         },
-        "outcome": {
-          "status": "not_applied",
-          "applied_by": null,
-          "applied_at": null
-        }
+        "request": {
+          "request_id": "2026-05-22T02-30-00Z__route-memory-proposal-basic__promote",
+          "workspace": "$WORKSPACE",
+          "gate_policy": {
+            "mode": "proposal_only",
+            "allow_apply": false,
+            "review_required": true
+          },
+          "requested_outputs": [
+            {
+              "kind": "memory_proposal",
+              "target_owner": "pamem",
+              "review_required": true
+            }
+          ]
+        },
+        "proposals": [
+          {
+            "proposal_id": "2026-05-22T02-30-00Z__route-memory-proposal-basic__promote__01__memory_proposal",
+            "proposal_type": "memory_proposal",
+            "status": "pending_review",
+            "target_owner": "pamem",
+            "target_surface": "pamem",
+            "automation_boundary": {
+              "mode": "proposal_only",
+              "allow_apply": false,
+              "downstream_execution": "not-run",
+              "owner_apply_required": true
+            },
+            "outcome": {
+              "status": "not_applied",
+              "applied_by": null,
+              "applied_at": null
+            }
+          }
+        ],
+        "no_owner_state": true
       }
-    ],
-    "no_owner_state": true
-  }
+    },
+    {
+      "schema_version": "0.1",
+      "case_id": "route-wiki-proposal-basic",
+      "description": "A valid learning event routes into one wiki_proposal without owner execution.",
+      "input": {
+        "event": {
+          "schema_version": "0.1",
+          "event_id": "2026-05-22T02-30-00Z__route-wiki-proposal-basic",
+          "created_at": "2026-05-22T02:30:00Z",
+          "workspace": "$WORKSPACE",
+          "kind": "repeated_workflow",
+          "summary": "Operator wants the wiki owner lane covered by a golden replay.",
+          "source_refs": [
+            {
+              "kind": "slock_thread",
+              "ref": "#heuristic-system:8aa1f39e",
+              "summary": "Task thread requesting eval/replay golden coverage for route and proposal flow."
+            }
+          ],
+          "case": {
+            "situation": "A learning event with wiki routing hints should become a reviewable wiki proposal.",
+            "observed": "The route command composes event promote and promote plan gates.",
+            "desired": "Replay verifies the route result stays proposal-only and owner-safe.",
+            "evidence": "Golden replay should catch route or proposal schema drift before owner handoff."
+          },
+          "impact": {
+            "severity": "medium",
+            "recurrence": "repeated",
+            "confidence": "high"
+          },
+          "routing_hints": [
+            {
+              "candidate_kind": "wiki",
+              "target_surface": "loreforge",
+              "review_required": true,
+              "reason": "The wiki owner lane should stay proposal-only until owner review."
+            }
+          ]
+        }
+      },
+      "expect": {
+        "status": "ok",
+        "downstream_execution": "not-run",
+        "summary": {
+          "request_count": 1,
+          "proposal_count": 1,
+          "error_count": 0
+        },
+        "request": {
+          "request_id": "2026-05-22T02-30-00Z__route-wiki-proposal-basic__promote",
+          "workspace": "$WORKSPACE",
+          "gate_policy": {
+            "mode": "proposal_only",
+            "allow_apply": false,
+            "review_required": true
+          },
+          "requested_outputs": [
+            {
+              "kind": "wiki_proposal",
+              "target_owner": "LoreForge",
+              "review_required": true
+            }
+          ]
+        },
+        "proposals": [
+          {
+            "proposal_id": "2026-05-22T02-30-00Z__route-wiki-proposal-basic__promote__01__wiki_proposal",
+            "proposal_type": "wiki_proposal",
+            "status": "pending_review",
+            "target_owner": "LoreForge",
+            "target_surface": "loreforge",
+            "automation_boundary": {
+              "mode": "proposal_only",
+              "allow_apply": false,
+              "downstream_execution": "not-run",
+              "owner_apply_required": true
+            },
+            "outcome": {
+              "status": "not_applied",
+              "applied_by": null,
+              "applied_at": null
+            }
+          }
+        ],
+        "no_owner_state": true
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "case_id": "route-skill-proposal-basic",
+      "description": "A valid learning event routes into one skill_proposal without owner execution.",
+      "input": {
+        "event": {
+          "schema_version": "0.1",
+          "event_id": "2026-05-22T02-30-00Z__route-skill-proposal-basic",
+          "created_at": "2026-05-22T02:30:00Z",
+          "workspace": "$WORKSPACE",
+          "kind": "repeated_workflow",
+          "summary": "Operator wants the skill owner lane covered by a golden replay.",
+          "source_refs": [
+            {
+              "kind": "slock_thread",
+              "ref": "#heuristic-system:8aa1f39e",
+              "summary": "Task thread requesting eval/replay golden coverage for route and proposal flow."
+            }
+          ],
+          "case": {
+            "situation": "A learning event with skill routing hints should become a reviewable skill proposal.",
+            "observed": "The route command composes event promote and promote plan gates.",
+            "desired": "Replay verifies the route result stays proposal-only and owner-safe.",
+            "evidence": "Golden replay should catch route or proposal schema drift before owner handoff."
+          },
+          "impact": {
+            "severity": "medium",
+            "recurrence": "repeated",
+            "confidence": "high"
+          },
+          "routing_hints": [
+            {
+              "candidate_kind": "skill",
+              "target_surface": "skill-manager",
+              "review_required": true,
+              "reason": "The skill owner lane should stay proposal-only until owner review."
+            }
+          ]
+        }
+      },
+      "expect": {
+        "status": "ok",
+        "downstream_execution": "not-run",
+        "summary": {
+          "request_count": 1,
+          "proposal_count": 1,
+          "error_count": 0
+        },
+        "request": {
+          "request_id": "2026-05-22T02-30-00Z__route-skill-proposal-basic__promote",
+          "workspace": "$WORKSPACE",
+          "gate_policy": {
+            "mode": "proposal_only",
+            "allow_apply": false,
+            "review_required": true
+          },
+          "requested_outputs": [
+            {
+              "kind": "skill_proposal",
+              "target_owner": "skill-manager",
+              "review_required": true
+            }
+          ]
+        },
+        "proposals": [
+          {
+            "proposal_id": "2026-05-22T02-30-00Z__route-skill-proposal-basic__promote__01__skill_proposal",
+            "proposal_type": "skill_proposal",
+            "status": "pending_review",
+            "target_owner": "skill-manager",
+            "target_surface": "skill-manager",
+            "automation_boundary": {
+              "mode": "proposal_only",
+              "allow_apply": false,
+              "downstream_execution": "not-run",
+              "owner_apply_required": true
+            },
+            "outcome": {
+              "status": "not_applied",
+              "applied_by": null,
+              "applied_at": null
+            }
+          }
+        ],
+        "no_owner_state": true
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "case_id": "route-eval-proposal-basic",
+      "description": "A valid learning event routes into one eval proposal without owner execution.",
+      "input": {
+        "event": {
+          "schema_version": "0.1",
+          "event_id": "2026-05-22T02-30-00Z__route-eval-proposal-basic",
+          "created_at": "2026-05-22T02:30:00Z",
+          "workspace": "$WORKSPACE",
+          "kind": "repeated_workflow",
+          "summary": "Operator wants the event-to-proposal route flow covered by a golden replay.",
+          "source_refs": [
+            {
+              "kind": "slock_thread",
+              "ref": "#heuristic-system:8aa1f39e",
+              "summary": "Task thread requesting eval/replay golden coverage for route and proposal flow."
+            }
+          ],
+          "case": {
+            "situation": "A learning event with eval routing hints should become a reviewable eval proposal.",
+            "observed": "The route command composes event promote and promote plan gates.",
+            "desired": "Replay verifies the route result stays proposal-only and owner-safe.",
+            "evidence": "Golden replay should catch route or proposal schema drift before owner handoff."
+          },
+          "impact": {
+            "severity": "medium",
+            "recurrence": "repeated",
+            "confidence": "high"
+          },
+          "routing_hints": [
+            {
+              "candidate_kind": "eval",
+              "target_surface": "evals",
+              "review_required": true,
+              "reason": "The route behavior should be protected as a regression case."
+            }
+          ]
+        }
+      },
+      "expect": {
+        "status": "ok",
+        "downstream_execution": "not-run",
+        "summary": {
+          "request_count": 1,
+          "proposal_count": 1,
+          "error_count": 0
+        },
+        "request": {
+          "request_id": "2026-05-22T02-30-00Z__route-eval-proposal-basic__promote",
+          "workspace": "$WORKSPACE",
+          "gate_policy": {
+            "mode": "proposal_only",
+            "allow_apply": false,
+            "review_required": true
+          },
+          "requested_outputs": [
+            {
+              "kind": "eval_proposal",
+              "target_owner": "evals",
+              "review_required": true
+            }
+          ]
+        },
+        "proposals": [
+          {
+            "proposal_id": "2026-05-22T02-30-00Z__route-eval-proposal-basic__promote__01__eval_proposal",
+            "proposal_type": "eval_proposal",
+            "status": "pending_review",
+            "target_owner": "evals",
+            "target_surface": "evals",
+            "automation_boundary": {
+              "mode": "proposal_only",
+              "allow_apply": false,
+              "downstream_execution": "not-run",
+              "owner_apply_required": true
+            },
+            "outcome": {
+              "status": "not_applied",
+              "applied_by": null,
+              "applied_at": null
+            }
+          }
+        ],
+        "no_owner_state": true
+      }
+    }
+  ]
 }

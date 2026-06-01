@@ -69,7 +69,7 @@ Implemented:
 - `noesis owner handoff` for approved proposal handoff artifacts across owner lanes
 - `noesis owner outcome` for linking owner PR/draft/commit/report refs back to proposals
 - `noesis eval handoff` for approved eval-proposal owner handoff reports
-- `noesis eval replay` for route/proposal golden-case replay in temporary workspaces
+- `noesis eval replay` for memory/wiki/skill/eval route-to-proposal golden-case replay in temporary workspaces
 - `noesis compression summary` for read-only repeated/stale learning artifact candidates
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
@@ -196,6 +196,33 @@ Generated manifests enable pamem by default. LoreForge is enabled when setup can
 resolve a component source or when the `loreforge` CLI is discoverable;
 otherwise it remains declared but disabled.
 
+For a Noesis-only smoke baseline, use `--with none`:
+
+```bash
+noesis setup --workspace <workspace> --with none --json
+noesis doctor --workspace <workspace> --json
+```
+
+For a full local HS workspace bootstrap, keep component roots explicit so setup
+is deterministic:
+
+```bash
+noesis setup --workspace <workspace> \
+  --profile researcher \
+  --component pamem=/path/to/pamem \
+  --component loreforge=/path/to/LoreForge \
+  --loreforge-wiki /path/to/wiki \
+  --loreforge-domain research \
+  --json
+noesis doctor --workspace <workspace> --json
+```
+
+`noesis setup` is the workspace entrypoint, not the task runner. Normal agent
+work should stay in the runtime. Enter the Noesis learning flow only for durable
+learning signals: stable user preferences or workflow rules, repeated failures,
+source-backed knowledge that belongs in a wiki, skill/eval candidates, or stale
+repeated artifacts that need compression.
+
 The main setup path keeps component handling inside `noesis setup`; there is no
 separate `noesis component` command. Resolution order is:
 
@@ -276,7 +303,9 @@ provided.
 
 `noesis proposal list`, `noesis proposal summary`, and `noesis proposal show`
 inspect the local proposal queue. `summary` aggregates pending, stale,
-high-risk, invalid, and owner-handoff warning conditions without writing state.
+high-risk, invalid, owner-handoff, and owner-outcome warning conditions, then
+emits a structured review queue with suggested next commands, without writing
+state.
 `noesis proposal update` records review metadata on one proposal artifact with
 statuses such as `approved`, `rejected`, or `superseded`. It writes only the
 proposal JSON file and preserves `outcome.status=not_applied`; owner apply flows
@@ -301,7 +330,8 @@ create eval files, run owner eval tooling, update proposals, or apply owner chan
 `docs/eval-handoff.md`.
 
 `noesis eval replay` runs route/proposal golden cases in isolated temporary
-workspaces. It replays learning-event input through `noesis route`, compares the
+workspaces. The packaged case set covers memory, wiki, skill, and eval owner
+lanes. It replays learning-event input through `noesis route`, compares the
 resulting promote request and proposal artifacts to golden expectations, and
 removes the temporary workspace by default. It does not call owner commands or
 create downstream owner artifacts. See `docs/eval-replay.md`.
