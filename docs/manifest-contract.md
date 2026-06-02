@@ -222,8 +222,7 @@ Allowed:
 - install Noesis entry skills;
 - resolve explicit, environment-provided, nearby, or managed local component
   sources;
-- clone missing enabled components through the launch default or setup
-  `--install-components`;
+- clone missing enabled components through setup `--install-components`;
 - fast-forward component git checkouts when the user passes
   `--update-components`;
 - call component-owned setup/install/repair entrypoints with explicit arguments;
@@ -232,6 +231,9 @@ Allowed:
 
 `noesis launch` may additionally:
 
+- clone missing components required by the requested launch setup: pamem for
+  plain runtime launch, and LoreForge only when explicitly enabled or when
+  wiki/domain setup is requested;
 - create or repair CLI agent homes under pamem's configured data directory;
 - bind existing Slock workspaces without creating or resuming a Slock agent;
 - record CLI runtime session metadata;

@@ -185,8 +185,10 @@ noesis skill remove <name> [--runtime codex|claude|both] [--json]
 
 - `launch --runtime codex|claude --agent-id <id>` prepares a CLI agent home
   under `${XDG_DATA_HOME:-~/.local/share}/pamem/agents/<id>`, runs doctor, and
-  starts the selected runtime. With `--json`, it reports the command that would
-  run without launching the process.
+  starts the selected runtime. Plain launch enables pamem only by default;
+  LoreForge is enabled when the user passes `--with loreforge`, a LoreForge
+  component source, or wiki/domain setup options. With `--json`, launch reports
+  the command that would run without launching the process.
 - `launch --runtime slock --workspace <path>` prepares or repairs an existing
   Slock workspace and reports status. It does not create a Slock agent and does
   not resume one; Slock owns that lifecycle.
@@ -239,14 +241,17 @@ command. Resolution order is:
 4. managed checkouts under `--component-dir`, defaulting to
    `${XDG_DATA_HOME:-~/.local/share}/noesis/components`.
 
-`launch` and `update` install missing enabled components into the managed
-component directory by default before running setup/status checks. `setup`
-remains conservative for development and smoke tests: it only discovers
-existing checkouts unless `--install-components` is passed. Use
-`noesis update` to maintain Noesis, pamem, and LoreForge together; use
-`--no-install-components` only when you want to report unresolved components
-instead of cloning them. Use explicit `--component name=path` when a machine has
-multiple checkouts and you want deterministic selection.
+`launch` installs missing components required by the requested launch setup into
+the managed component directory by default before running setup and doctor:
+pamem for plain runtime launch, and LoreForge only when explicitly enabled or
+when wiki/domain setup is requested. `update` installs missing enabled
+components into the managed component directory by default before status checks.
+`setup` remains conservative for development and smoke tests: it only discovers
+existing checkouts unless `--install-components` is passed. Use `noesis update`
+to maintain Noesis, pamem, and LoreForge together; use `--no-install-components`
+only when you want to report unresolved components instead of cloning them. Use
+explicit `--component name=path` when a machine has multiple checkouts and you
+want deterministic selection.
 
 For a source checkout workflow, local component roots can still be passed
 explicitly to `launch`:

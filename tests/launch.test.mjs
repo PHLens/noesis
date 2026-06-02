@@ -221,6 +221,44 @@ test('launch prefers bundled pamem over cloning a managed component', (t) => {
 });
 
 
+test('plain launch does not require LoreForge component resolution', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const componentDir = path.join(root, 'components');
+  ensureBundledPamem(t);
+  fs.mkdirSync(home);
+
+  const result = runNoesis([
+    'launch',
+    '--profile', 'coder',
+    '--runtime', 'cli',
+    '--agent-id', 'plain-default',
+    '--component-dir', componentDir,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      NOESIS_PAMEM_REPO: path.join(root, 'missing-pamem.git'),
+      NOESIS_LOREFORGE_REPO: path.join(root, 'missing-LoreForge.git'),
+      NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search'),
+    },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem'), true);
+  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'loreforge'), false);
+  assert.equal(data.setup.components.loreforge.enabled, false);
+  assert.equal(fs.existsSync(componentDir), false);
+});
+
+
 test('launch installs missing enabled components before setup', (t) => {
   const root = tempRoot(t);
   const home = path.join(root, 'home');
