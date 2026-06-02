@@ -153,6 +153,7 @@ for development and smoke tests.
 
 ```bash
 noesis launch --profile <role> [--runtime codex|claude|cli|slock] [--agent-id <id>] [--workspace <path>] [--json]
+noesis update [--with pamem,loreforge|none] [--component-dir <path>] [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--no-install-components] [--skip-self] [--json]
 noesis list [--json]
 noesis remove [--workspace <path>|--agent-id <id>] [--json]
 noesis init [--workspace <path>] [--with pamem,loreforge|none] [--force] [--json]
@@ -189,6 +190,11 @@ noesis skill remove <name> [--runtime codex|claude|both] [--json]
 - `launch --runtime slock --workspace <path>` prepares or repairs an existing
   Slock workspace and reports status. It does not create a Slock agent and does
   not resume one; Slock owns that lifecycle.
+- `update` is the Noesis user-facing replacement for component-local update
+  entrypoints. It updates Noesis when the package is a git checkout, resolves
+  pamem/LoreForge through the same component rules as launch/setup, installs
+  missing enabled components into the managed component directory by default,
+  and fast-forwards resolved git checkouts.
 - `list` is the Noesis user-facing replacement for `pamem list`; it lists
   configured CLI agent homes and local Slock workspaces.
 - `remove` is the Noesis user-facing replacement for `pamem remove`; it removes
@@ -222,8 +228,9 @@ Generated manifests enable pamem by default. LoreForge is enabled when setup can
 resolve a component source or when the `loreforge` CLI is discoverable;
 otherwise it remains declared but disabled.
 
-The main prepare path keeps component handling inside `noesis launch`/`setup`;
-there is no separate `noesis component` command. Resolution order is:
+The main prepare path keeps component handling inside `noesis launch`/`setup`
+and maintenance inside `noesis update`; there is no separate `noesis component`
+command. Resolution order is:
 
 1. explicit `--component pamem=/path` / `--component loreforge=/path`;
 2. `NOESIS_PAMEM_ROOT` / `NOESIS_LOREFORGE_ROOT`;
@@ -232,11 +239,14 @@ there is no separate `noesis component` command. Resolution order is:
 4. managed checkouts under `--component-dir`, defaulting to
    `${XDG_DATA_HOME:-~/.local/share}/noesis/components`.
 
-By default setup only discovers existing checkouts. Pass `--install-components`
-to clone missing enabled components into `--component-dir`; pass
-`--update-components` to run `git pull --ff-only` in resolved git checkouts.
-Use explicit `--component name=path` when a machine has multiple checkouts and
-you want deterministic selection.
+`launch` and `update` install missing enabled components into the managed
+component directory by default before running setup/status checks. `setup`
+remains conservative for development and smoke tests: it only discovers
+existing checkouts unless `--install-components` is passed. Use
+`noesis update` to maintain Noesis, pamem, and LoreForge together; use
+`--no-install-components` only when you want to report unresolved components
+instead of cloning them. Use explicit `--component name=path` when a machine has
+multiple checkouts and you want deterministic selection.
 
 For a source checkout workflow, local component roots can still be passed
 explicitly to `launch`:
