@@ -118,6 +118,39 @@ process.exit(2);
 }
 
 
+function ensureBundledPamem(t) {
+  const source = path.join(REPO_ROOT, 'node_modules', '@phlens', 'pamem');
+  if (fs.existsSync(source)) return source;
+
+  const created = makePamemComponent(path.dirname(source));
+  t.after(() => fs.rmSync(created, { recursive: true, force: true }));
+  return created;
+}
+
+
+function makeGitRemote(source, remote) {
+  runGit(['init'], source);
+  runGit(['config', 'user.name', 'Noesis Test'], source);
+  runGit(['config', 'user.email', 'noesis-test@example.com'], source);
+  runGit(['add', '.'], source);
+  runGit(['commit', '-m', 'initial'], source);
+  runGit(['init', '--bare', remote], path.dirname(remote));
+  runGit(['symbolic-ref', 'HEAD', 'refs/heads/main'], remote);
+  runGit(['remote', 'add', 'origin', remote], source);
+  runGit(['push', 'origin', 'HEAD:main'], source);
+  return remote;
+}
+
+
+function runGit(args, cwd) {
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+  if (result.status !== 0) {
+    assert.fail(`git ${args.join(' ')} failed with ${result.status}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
+  }
+  return result;
+}
+
+
 test('launch prepares an agent home and reports runtime command without starting when --json is set', (t) => {
   const root = tempRoot(t);
   const home = path.join(root, 'home');
@@ -146,6 +179,125 @@ test('launch prepares an agent home and reports runtime command without starting
   assert.equal(data.runtime_state.memory_repo, memory);
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', 'config.toml')), true);
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', '.noesis', 'config.toml')), true);
+});
+
+
+test('launch prefers bundled pamem over cloning a managed component', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const componentDir = path.join(root, 'components');
+  const bundled = ensureBundledPamem(t);
+  fs.mkdirSync(home);
+
+  const result = runNoesis([
+    'launch',
+    '--profile', 'coder',
+    '--runtime', 'cli',
+    '--agent-id', 'coder-local',
+    '--with', 'pamem',
+    '--component-dir', componentDir,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      NOESIS_PAMEM_REPO: path.join(root, 'missing-pamem.git'),
+      NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search'),
+    },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'bundled'), true);
+  assert.equal(data.setup.components.pamem.component_source, bundled);
+  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'installed'), false);
+  assert.equal(fs.existsSync(componentDir), false);
+  assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', 'config.toml')), true);
+});
+
+
+test('plain launch does not require LoreForge component resolution', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const componentDir = path.join(root, 'components');
+  ensureBundledPamem(t);
+  fs.mkdirSync(home);
+
+  const result = runNoesis([
+    'launch',
+    '--profile', 'coder',
+    '--runtime', 'cli',
+    '--agent-id', 'plain-default',
+    '--component-dir', componentDir,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      NOESIS_PAMEM_REPO: path.join(root, 'missing-pamem.git'),
+      NOESIS_LOREFORGE_REPO: path.join(root, 'missing-LoreForge.git'),
+      NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search'),
+    },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem'), true);
+  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'loreforge'), false);
+  assert.equal(data.setup.components.loreforge.enabled, false);
+  assert.equal(fs.existsSync(componentDir), false);
+});
+
+
+test('launch installs missing enabled components before setup', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const componentDir = path.join(root, 'components');
+  const remoteRoot = path.join(root, 'remotes');
+  const pamemRemote = path.join(remoteRoot, 'pamem.git');
+  fs.mkdirSync(home);
+  fs.mkdirSync(remoteRoot, { recursive: true });
+  const pamemSource = makePamemComponent(path.join(root, 'sources'));
+  makeGitRemote(pamemSource, pamemRemote);
+
+  const result = runNoesis([
+    'launch',
+    '--profile', 'coder',
+    '--runtime', 'cli',
+    '--agent-id', 'coder-local',
+    '--with', 'pamem',
+    '--component-dir', componentDir,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      NOESIS_PAMEM_REPO: pamemRemote,
+      NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search'),
+    },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.downstream_execution, 'runtime-not-run');
+  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'installed'), true);
+  assert.equal(fs.existsSync(path.join(componentDir, 'pamem', 'bin', 'pamem.mjs')), true);
+  assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', 'config.toml')), true);
 });
 
 
@@ -241,7 +393,9 @@ test('launch command help is available from top-level help', (t) => {
   fs.mkdirSync(home);
 
   assert.match(runNoesis(['help', 'launch'], { cwd: root, home }).stdout, /Usage: noesis launch/);
+  assert.match(runNoesis(['help', 'update'], { cwd: root, home }).stdout, /Usage: noesis update/);
   assert.match(runNoesis(['help', 'list'], { cwd: root, home }).stdout, /Usage: noesis list/);
   assert.match(runNoesis(['help', 'remove'], { cwd: root, home }).stdout, /Usage: noesis remove/);
   assert.match(runNoesis(['--help'], { cwd: root, home }).stdout, /noesis launch --profile/);
+  assert.match(runNoesis(['--help'], { cwd: root, home }).stdout, /noesis update/);
 });

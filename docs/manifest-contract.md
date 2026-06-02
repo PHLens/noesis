@@ -203,11 +203,13 @@ It leaves unchanged:
 
 `noesis launch` is the user-facing workspace/runtime entrypoint. It runs the
 prepare path, delegates memory/wiki configuration to owner setup commands, runs
-doctor, and then starts or binds the selected runtime. `noesis init` creates
-Noesis-owned local state only. The lower-level `noesis setup` command remains
-an advanced prepare surface used by launch and tests. Component discovery and
-local component installation/update are prepare behavior, not a separate
-`noesis component` command surface.
+doctor, and then starts or binds the selected runtime. `noesis update` is the
+user-facing maintenance entrypoint for Noesis-managed local tooling and
+components. `noesis init` creates Noesis-owned local state only. The lower-level
+`noesis setup` command remains an advanced prepare surface used by launch and
+tests. Component discovery and local component installation/update are
+Noesis-owned prepare/update behavior, not a separate `noesis component` command
+surface.
 
 Allowed:
 
@@ -220,7 +222,7 @@ Allowed:
 - install Noesis entry skills;
 - resolve explicit, environment-provided, nearby, or managed local component
   sources;
-- clone missing enabled components when the user passes `--install-components`;
+- clone missing enabled components through setup `--install-components`;
 - fast-forward component git checkouts when the user passes
   `--update-components`;
 - call component-owned setup/install/repair entrypoints with explicit arguments;
@@ -229,15 +231,25 @@ Allowed:
 
 `noesis launch` may additionally:
 
+- clone missing components required by the requested launch setup: pamem for
+  plain runtime launch, and LoreForge only when explicitly enabled or when
+  wiki/domain setup is requested;
 - create or repair CLI agent homes under pamem's configured data directory;
 - bind existing Slock workspaces without creating or resuming a Slock agent;
 - record CLI runtime session metadata;
 - start the selected CLI runtime only after doctor reports no errors.
 
-Requires explicit flags or review:
+`noesis update` may additionally:
 
-- installing missing component checkouts;
-- updating component checkouts;
+- update the Noesis checkout when it is a git checkout with an upstream;
+- install missing enabled pamem/LoreForge components into the managed component
+  directory by default;
+- fast-forward resolved pamem/LoreForge git checkouts.
+
+Requires explicit command intent, flags, or review:
+
+- updating component checkouts through `noesis update` or setup
+  `--update-components`;
 - enabling runtime capabilities;
 - overwriting existing config files.
 
