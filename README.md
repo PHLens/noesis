@@ -146,9 +146,15 @@ npm install -g .
 noesis --help
 ```
 
-The first implemented command families are bootstrap and skill management:
+The user-facing entrypoint is `noesis launch`. It prepares Noesis readiness,
+delegates memory/wiki setup to component owners, runs doctor, and then starts
+or binds the selected runtime. Lower-level bootstrap commands remain available
+for development and smoke tests.
 
 ```bash
+noesis launch --profile <role> [--runtime codex|claude|cli|slock] [--agent-id <id>] [--workspace <path>] [--json]
+noesis list [--json]
+noesis remove [--workspace <path>|--agent-id <id>] [--json]
 noesis init [--workspace <path>] [--with pamem,loreforge|none] [--force] [--json]
 noesis setup [--workspace <path>] --profile <role> [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--component-dir <path>] [--install-components] [--update-components] [--pamem-runtime cli|slock] [--loreforge-wiki <path>] [--loreforge-domain <name>] [--loreforge-registry <path>] [--json]
 noesis doctor [--workspace <path>] [--json]
@@ -174,15 +180,35 @@ noesis skill add <name> [--source <path>] [--alias <alias>] [--runtime codex|cla
 noesis skill remove <name> [--runtime codex|claude|both] [--json]
 ```
 
-The bootstrap commands are intentionally conservative:
+`noesis launch` is the normal route for local HS use:
+
+- `launch --runtime codex|claude --agent-id <id>` prepares a CLI agent home
+  under `${XDG_DATA_HOME:-~/.local/share}/pamem/agents/<id>`, runs doctor, and
+  starts the selected runtime. With `--json`, it reports the command that would
+  run without launching the process.
+- `launch --runtime slock --workspace <path>` prepares or repairs an existing
+  Slock workspace and reports status. It does not create a Slock agent and does
+  not resume one; Slock owns that lifecycle.
+- `list` is the Noesis user-facing replacement for `pamem list`; it lists
+  configured CLI agent homes and local Slock workspaces.
+- `remove` is the Noesis user-facing replacement for `pamem remove`; it removes
+  launch integration such as Codex hooks and pamem skill links while preserving
+  `.noesis`, pamem config, shared memory repos, and LoreForge wiki content.
+
+The owner boundary is explicit: Noesis owns launch/session UX and the umbrella
+doctor report. pamem still owns memory setup/status/context/lint/check/pr-check,
+and LoreForge still owns wiki setup/validate/status. Noesis calls those owner
+surfaces instead of copying memory or wiki semantics.
+
+The bootstrap commands are lower-level and intentionally conservative:
 
 - `init` creates `.noesis/config.toml` and Noesis-owned local state directories;
-- `setup` is the user-facing one-step local bootstrap: it runs Noesis init,
-  installs required entry skills, resolves local pamem/LoreForge component
-  sources, calls pamem's component-facing setup wrapper with the requested
-  profile/runtime when pamem is enabled, optionally calls LoreForge's
-  component-facing setup wrapper when a wiki path and domain are provided, and
-  finishes with doctor;
+- `setup` is the internal/advanced prepare path used by launch and tests: it
+  runs Noesis init, installs required entry skills, resolves local pamem/
+  LoreForge component sources, calls pamem's component-facing setup wrapper
+  with the requested profile/runtime when pamem is enabled, optionally calls
+  LoreForge's component-facing setup wrapper when a wiki path and domain are
+  provided, and finishes with doctor;
 - `doctor` is read-only for Noesis-owned state, reports umbrella readiness
   across Noesis, entry skills, pamem, LoreForge, and skill-manager, treats
   missing downstream readiness as warnings unless the manifest itself is
@@ -196,8 +222,8 @@ Generated manifests enable pamem by default. LoreForge is enabled when setup can
 resolve a component source or when the `loreforge` CLI is discoverable;
 otherwise it remains declared but disabled.
 
-The main setup path keeps component handling inside `noesis setup`; there is no
-separate `noesis component` command. Resolution order is:
+The main prepare path keeps component handling inside `noesis launch`/`setup`;
+there is no separate `noesis component` command. Resolution order is:
 
 1. explicit `--component pamem=/path` / `--component loreforge=/path`;
 2. `NOESIS_PAMEM_ROOT` / `NOESIS_LOREFORGE_ROOT`;
@@ -213,20 +239,22 @@ Use explicit `--component name=path` when a machine has multiple checkouts and
 you want deterministic selection.
 
 For a source checkout workflow, local component roots can still be passed
-explicitly:
+explicitly to `launch`:
 
 ```bash
-noesis setup --workspace <workspace> \
+noesis launch --runtime codex --agent-id researcher-local \
   --profile researcher \
   --component pamem=/path/to/pamem \
   --component loreforge=/path/to/LoreForge \
-  --loreforge-wiki /path/to/wiki \
-  --loreforge-domain research
+  --wiki /path/to/wiki \
+  --domain research
 ```
 
 When pamem is enabled, `--profile <onboarding|coder|reviewer|researcher>`
 is required so setup does not silently create an onboarding/default memory
-binding. Use `--pamem-runtime cli|slock`, `--agent-id`, `--memory-repo`,
+binding. `launch --runtime codex|claude|cli` maps to pamem runtime `cli`, while
+`launch --runtime slock` maps to pamem runtime `slock`. Use `--agent-id`,
+`--memory-repo`,
 `--git-author-name`, and `--git-author-email` to pass the corresponding
 `pamem setup` settings. Use `--with none` or `--with loreforge` when you only
 want Noesis/LoreForge bootstrap without pamem.

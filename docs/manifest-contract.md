@@ -125,9 +125,9 @@ Noesis may expect:
 
 The exact command names are left to the LoreForge owner contract. Generated
 manifests use the stable `loreforge init` proposal-only CLI surface when that
-CLI is discoverable. `noesis setup` may replace that with the write-capable
-`loreforge setup` owner command when the user provides an explicit LoreForge
-wiki path and domain. The setup-generated LoreForge commands use a
+CLI is discoverable. `noesis launch`/`setup` may replace that with the
+write-capable `loreforge setup` owner command when the user provides an explicit
+LoreForge wiki path and domain. The generated LoreForge commands use a
 workspace-local `.noesis/loreforge/registry.toml` by default, or an explicit
 `--loreforge-registry` path, so component bootstrap does not assume or mutate
 the user's default machine-local LoreForge registry. If the CLI is not
@@ -201,10 +201,13 @@ It leaves unchanged:
 
 ## Init Semantics
 
-`noesis init` creates Noesis-owned local state. Delegating downstream setup is a
-separate `noesis setup` phase. Component discovery and local component
-installation/update are setup behavior, not a separate `noesis component`
-command surface.
+`noesis launch` is the user-facing workspace/runtime entrypoint. It runs the
+prepare path, delegates memory/wiki configuration to owner setup commands, runs
+doctor, and then starts or binds the selected runtime. `noesis init` creates
+Noesis-owned local state only. The lower-level `noesis setup` command remains
+an advanced prepare surface used by launch and tests. Component discovery and
+local component installation/update are prepare behavior, not a separate
+`noesis component` command surface.
 
 Allowed:
 
@@ -212,7 +215,7 @@ Allowed:
 - create `.noesis/events/`, `.noesis/promote-requests/`, `.noesis/proposals/`, and `.noesis/reports/`;
 - run read-only doctor checks after initialization.
 
-`noesis setup` may:
+`noesis launch`/`setup` may:
 
 - install Noesis entry skills;
 - resolve explicit, environment-provided, nearby, or managed local component
@@ -223,6 +226,13 @@ Allowed:
 - call component-owned setup/install/repair entrypoints with explicit arguments;
 - write component command pointers into `.noesis/config.toml`;
 - run read-only doctor checks after initialization.
+
+`noesis launch` may additionally:
+
+- create or repair CLI agent homes under pamem's configured data directory;
+- bind existing Slock workspaces without creating or resuming a Slock agent;
+- record CLI runtime session metadata;
+- start the selected CLI runtime only after doctor reports no errors.
 
 Requires explicit flags or review:
 
