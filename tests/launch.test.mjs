@@ -118,6 +118,16 @@ process.exit(2);
 }
 
 
+function ensureBundledPamem(t) {
+  const source = path.join(REPO_ROOT, 'node_modules', '@phlens', 'pamem');
+  if (fs.existsSync(source)) return source;
+
+  const created = makePamemComponent(path.dirname(source));
+  t.after(() => fs.rmSync(created, { recursive: true, force: true }));
+  return created;
+}
+
+
 function makeGitRemote(source, remote) {
   runGit(['init'], source);
   runGit(['config', 'user.name', 'Noesis Test'], source);
@@ -169,6 +179,45 @@ test('launch prepares an agent home and reports runtime command without starting
   assert.equal(data.runtime_state.memory_repo, memory);
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', 'config.toml')), true);
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', '.noesis', 'config.toml')), true);
+});
+
+
+test('launch prefers bundled pamem over cloning a managed component', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const componentDir = path.join(root, 'components');
+  const bundled = ensureBundledPamem(t);
+  fs.mkdirSync(home);
+
+  const result = runNoesis([
+    'launch',
+    '--profile', 'coder',
+    '--runtime', 'cli',
+    '--agent-id', 'coder-local',
+    '--with', 'pamem',
+    '--component-dir', componentDir,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      NOESIS_PAMEM_REPO: path.join(root, 'missing-pamem.git'),
+      NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search'),
+    },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'bundled'), true);
+  assert.equal(data.setup.components.pamem.component_source, bundled);
+  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'installed'), false);
+  assert.equal(fs.existsSync(componentDir), false);
+  assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', 'config.toml')), true);
 });
 
 
