@@ -151,6 +151,49 @@ function runGit(args, cwd) {
 }
 
 
+function makeFakeClaude(t, root) {
+  const binDir = path.join(root, 'fake-bin');
+  const stateFile = path.join(root, 'claude-plugins.json');
+  const logFile = path.join(root, 'claude.log');
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.writeFileSync(stateFile, '[]\n');
+  const claude = path.join(binDir, 'claude');
+  fs.writeFileSync(
+    claude,
+    `#!/bin/sh
+node - "$@" <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+const stateFile = process.env.FAKE_CLAUDE_STATE;
+const args = process.argv.slice(2);
+const entries = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+if (args[0] === 'plugin' && args[1] === 'list' && args[2] === '--json') {
+  console.log(JSON.stringify(entries));
+  process.exit(0);
+}
+if (args[0] === 'plugin' && (args[1] === 'install' || args[1] === 'uninstall')) {
+  const key = args[2];
+  const scope = args[args.indexOf('-s') + 1] || 'user';
+  fs.appendFileSync(process.env.FAKE_CLAUDE_LOG, process.cwd() + '|' + args.join(' ') + '\\n');
+  const existing = entries.find((entry) => entry.id === key && entry.scope === scope && (!entry.projectPath || path.resolve(entry.projectPath) === process.cwd()));
+  if (args[1] === 'install') {
+    if (existing) existing.enabled = true;
+    else entries.push({ id: key, scope, enabled: true, projectPath: scope === 'project' ? process.cwd() : undefined });
+  } else if (existing) {
+    existing.enabled = false;
+  }
+  fs.writeFileSync(stateFile, JSON.stringify(entries));
+  process.exit(0);
+}
+process.exit(2);
+NODE
+`,
+  );
+  fs.chmodSync(claude, 0o755);
+  return { binDir, logFile, stateFile };
+}
+
+
 test('launch prepares an agent home and reports runtime command without starting when --json is set', (t) => {
   const root = tempRoot(t);
   const home = path.join(root, 'home');
@@ -179,6 +222,48 @@ test('launch prepares an agent home and reports runtime command without starting
   assert.equal(data.runtime_state.memory_repo, memory);
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', 'config.toml')), true);
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', '.noesis', 'config.toml')), true);
+});
+
+
+test('launch enables pamem Claude runtime capability', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const pamem = makePamemComponent(root);
+  const fakeClaude = makeFakeClaude(t, root);
+  fs.mkdirSync(home);
+
+  const result = runNoesis([
+    'launch',
+    '--profile', 'coder',
+    '--runtime', 'claude',
+    '--agent-id', 'claude-local',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    '--help',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      PATH: `${fakeClaude.binDir}${path.delimiter}${process.env.PATH || ''}`,
+      FAKE_CLAUDE_LOG: fakeClaude.logFile,
+      FAKE_CLAUDE_STATE: fakeClaude.stateFile,
+    },
+  });
+  const data = JSON.parse(result.stdout);
+  const action = data.setup.actions.find((item) => item.phase === 'skill' && item.name === 'pamem');
+
+  assert.equal(data.status, 'ok');
+  assert.deepEqual(data.launch_command, ['claude', '--dangerously-skip-permissions', '--help']);
+  assert.equal(action?.status, 'ok');
+  assert.equal(action.report.capability.runtimes.claude.status, 'ok');
+  assert.equal(action.report.capability.runtimes.claude.source, 'claude-cli');
+  assert.equal(action.report.capability.runtimes.codex.status, 'ok');
+  assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'claude-local', '.claude', 'settings.json')), false);
+  assert.match(fs.readFileSync(fakeClaude.logFile, 'utf8'), /plugin install pamem@phlens -s project/);
 });
 
 
