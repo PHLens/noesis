@@ -1046,6 +1046,30 @@ test('list and remove expose Noesis runtime management surface', (t) => {
 });
 
 
+test('remove is a no-op when the resolved agent home is missing', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  fs.mkdirSync(home);
+
+  const removed = JSON.parse(runNoesis([
+    'remove',
+    '--agent-id', 'already-gone',
+    '--json',
+  ], { cwd: root, home }).stdout);
+  const expectedHome = path.join(home, '.local', 'share', 'pamem', 'agents', 'already-gone');
+
+  assert.equal(removed.status, 'ok');
+  assert.equal(removed.workspace, expectedHome);
+  assert.deepEqual(removed.actions, [{
+    action: 'workspace-missing',
+    status: 'skipped',
+    path: expectedHome,
+    reason: 'not-found',
+  }]);
+  assert.equal(fs.existsSync(expectedHome), false);
+});
+
+
 test('launch command help is available from top-level help', (t) => {
   const root = tempRoot(t);
   const home = path.join(root, 'home');
