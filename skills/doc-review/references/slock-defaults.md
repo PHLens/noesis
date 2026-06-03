@@ -18,8 +18,9 @@ If the skill is being used from Claude or another runtime without this exact col
 
 ## Default Reviewer Backend Policy
 
-- In Codex main sessions, native reviewer subagents are acceptable.
+- In Codex main sessions, native reviewer subagents are acceptable only when they can reliably stay leaf workers.
 - In Claude main sessions, prefer launching Codex reviewer workers through `codex exec` rather than Claude-native subagents.
+- If reviewer workers can call agent orchestration tools, consume sibling or parent mailbox updates, or recurse into review orchestration, treat that backend as unstable for this review.
 - Keep Claude as the orchestration layer:
   - define review boundaries
   - choose the reviewer file sets
@@ -56,6 +57,7 @@ If the skill is being used from Claude or another runtime without this exact col
   - the task is too small to justify fan-out
   - the reviewer backend is unstable
   - the review dimensions are too tightly coupled to split cleanly
+- If the user explicitly forbids fallback and the backend is unstable, stop and report the infrastructure failure instead of completing the review in the main session.
 
 ## Default Wait And Fallback Policy
 
@@ -66,6 +68,7 @@ If the skill is being used from Claude or another runtime without this exact col
   - close the reviewer workers
   - keep the same review dimensions
   - complete the review in the main session
+- If a reviewer violates the leaf boundary, discard that worker output and handle the run as backend instability.
 - Do not wait indefinitely just because reviewers are still marked running
 - Do not skip directly to fallback after one short wait unless the infrastructure is clearly broken
 
