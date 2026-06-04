@@ -118,6 +118,29 @@ process.exit(2);
 }
 
 
+function makeFailingPamemComponent(root) {
+  const source = path.join(root, 'failing-pamem');
+  fs.mkdirSync(path.join(source, 'bin'), { recursive: true });
+  fs.writeFileSync(
+    path.join(source, 'bin', 'pamem.mjs'),
+    `#!/usr/bin/env node
+const [command] = process.argv.slice(2);
+if (command === 'setup') {
+  console.error('intentional setup failure');
+  process.exit(7);
+}
+if (command === 'status' || command === 'lint') {
+  console.log(JSON.stringify({ status: 'ok' }));
+  process.exit(0);
+}
+process.exit(2);
+`,
+  );
+  fs.chmodSync(path.join(source, 'bin', 'pamem.mjs'), 0o755);
+  return source;
+}
+
+
 function ensureBundledPamem(t) {
   const source = path.join(REPO_ROOT, 'node_modules', '@phlens', 'pamem');
   if (fs.existsSync(source)) return source;
@@ -222,6 +245,310 @@ test('launch prepares an agent home and reports runtime command without starting
   assert.equal(data.runtime_state.memory_repo, memory);
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', 'config.toml')), true);
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', '.noesis', 'config.toml')), true);
+});
+
+
+test('launch creates and resumes a named task instance without role-local state reuse', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const pamem = makePamemComponent(root);
+  fs.mkdirSync(home);
+
+  const created = runNoesis([
+    'launch',
+    '--name', 'task52-noesis-role-startup',
+    '--role', 'planner',
+    '--runtime', 'codex',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    '--help',
+  ], { cwd: root, home });
+  const first = JSON.parse(created.stdout);
+  const state = first.runtime_state;
+
+  assert.equal(first.status, 'ok');
+  assert.equal(state.kind, 'task-instance');
+  assert.equal(state.name, 'task52-noesis-role-startup');
+  assert.equal(state.role, 'planner');
+  assert.notEqual(state.internal_instance_id, 'task52-noesis-role-startup');
+  assert.equal(state.agent_id, state.internal_instance_id);
+  assert.equal(state.memory_repo, memory);
+  assert.equal(state.task_dir, path.join(state.root, 'tasks', 'task52-noesis-role-startup'));
+  assert.equal(fs.existsSync(path.join(state.root, '.noesis', 'instance.json')), true);
+  assert.equal(fs.existsSync(path.join(state.root, 'notes', 'current-task.md')), true);
+  assert.equal(fs.existsSync(path.join(state.root, 'notes', 'work-log.md')), true);
+  assert.equal(fs.existsSync(path.join(state.task_dir, 'plan')), true);
+  assert.equal(fs.existsSync(path.join(state.root, '.codex', 'skills', 'doc-review')), true);
+  assert.equal(fs.existsSync(path.join(state.root, '.codex', 'skills', 'noesis-skill-manager')), false);
+
+  const doctor = JSON.parse(runNoesis(['doctor', '--workspace', state.root, '--json'], { cwd: root, home }).stdout);
+  assert.equal(doctor.summary.error_count, 0);
+  assert.equal(doctor.checks.some((check) => check.id === 'entry_skill.component.skill_manager' && check.status === 'warning'), false);
+
+  const resumed = runNoesis([
+    'launch',
+    '--name', 'task52-noesis-role-startup',
+    '--runtime', 'codex',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--json',
+    '--',
+    '--help',
+  ], { cwd: root, home });
+  const second = JSON.parse(resumed.stdout);
+
+  assert.equal(second.runtime_state.root, state.root);
+  assert.equal(second.runtime_state.internal_instance_id, state.internal_instance_id);
+  assert.equal(second.runtime_state.role, 'planner');
+  assert.equal(second.runtime_state.memory_repo, memory);
+
+  const printed = runNoesis([
+    'launch',
+    '--name', 'task52-noesis-role-startup',
+    '--runtime', 'codex',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--print-env',
+  ], { cwd: root, home }).stdout;
+
+  assert.match(printed, /task_state=task-instance/);
+  assert.match(printed, /role=planner/);
+  assert.match(printed, /PAMEM_CURRENT_TASK=.*notes.*current-task\.md/);
+
+  const roleMismatch = runNoesis([
+    'launch',
+    '--name', 'task52-noesis-role-startup',
+    '--role', 'coder',
+    '--runtime', 'codex',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--json',
+    '--',
+    '--help',
+  ], { cwd: root, home, check: false });
+  assert.equal(roleMismatch.status, 1);
+  assert.match(roleMismatch.stderr, /existing task instance .* role=planner/);
+
+  const memoryMismatch = runNoesis([
+    'launch',
+    '--name', 'task52-noesis-role-startup',
+    '--runtime', 'codex',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--memory-repo', path.join(root, 'other-memory'),
+    '--json',
+    '--',
+    '--help',
+  ], { cwd: root, home, check: false });
+  assert.equal(memoryMismatch.status, 1);
+  assert.match(memoryMismatch.stderr, /memory repo mismatch/);
+});
+
+
+test('launch can generate a persistent task instance and list instance metadata', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const pamem = makePamemComponent(root);
+  fs.mkdirSync(home);
+
+  const launched = runNoesis([
+    'launch',
+    '--role', 'coder',
+    '--runtime', 'cli',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], { cwd: root, home });
+  const data = JSON.parse(launched.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.runtime_state.kind, 'task-instance');
+  assert.match(data.runtime_state.name, /^coder-\d{8}T\d{6}-[a-f0-9]{8}$/);
+  assert.equal(data.runtime_state.role, 'coder');
+  assert.equal(data.runtime_state.task_dir, path.join(data.runtime_state.root, 'tasks', data.runtime_state.name));
+
+  const listed = JSON.parse(runNoesis(['list', '--json'], { cwd: root, home }).stdout);
+  const instance = listed.agents.find((agent) => agent.internal_instance_id === data.runtime_state.internal_instance_id);
+
+  assert.equal(instance?.kind, 'task-instance');
+  assert.equal(instance.name, data.runtime_state.name);
+  assert.equal(instance.role, 'coder');
+  assert.equal(instance.runtime, 'cli');
+  assert.equal(instance.state_root, data.runtime_state.root);
+  assert.equal(instance.task_dir, data.runtime_state.task_dir);
+});
+
+
+test('launch --rm creates a disposable task instance and removes successful transient state', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const pamem = makePamemComponent(root);
+  fs.mkdirSync(home);
+
+  const result = runNoesis([
+    'launch',
+    '--role', 'reviewer',
+    '--runtime', 'cli',
+    '--rm',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], { cwd: root, home });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.runtime_state.kind, 'task-instance');
+  assert.equal(data.runtime_state.disposable, true);
+  assert.equal(data.disposable_cleanup.status, 'removed');
+  assert.equal(fs.existsSync(data.runtime_state.root), false);
+
+  const listed = JSON.parse(runNoesis(['list', '--json'], { cwd: root, home }).stdout);
+  assert.equal(listed.agents.some((agent) => agent.internal_instance_id === data.runtime_state.internal_instance_id), false);
+
+  const invalid = runNoesis([
+    'launch',
+    '--role', 'reviewer',
+    '--runtime', 'cli',
+    '--rm',
+    '--resume',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], { cwd: root, home, check: false });
+
+  assert.equal(invalid.status, 1);
+  assert.match(invalid.stderr, /--resume cannot be used with --rm/);
+
+  const printEnvInvalid = runNoesis([
+    'launch',
+    '--role', 'reviewer',
+    '--runtime', 'cli',
+    '--rm',
+    '--print-env',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+  ], { cwd: root, home, check: false });
+
+  assert.equal(printEnvInvalid.status, 1);
+  assert.match(printEnvInvalid.stderr, /--print-env cannot be used with --rm/);
+
+  const failed = runNoesis([
+    'launch',
+    '--role', 'reviewer',
+    '--runtime', 'cli',
+    '--rm',
+    '--with', 'none',
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], { cwd: root, home, check: false });
+  assert.equal(failed.status, 1);
+  assert.match(failed.stderr, /pamem config not found/);
+
+  const afterFailure = JSON.parse(runNoesis(['list', '--json'], { cwd: root, home }).stdout);
+  const failedDisposable = afterFailure.agents.find((agent) => agent.status === 'failed-disposable');
+  assert.equal(Boolean(failedDisposable), true);
+  assert.equal(failedDisposable.role, 'reviewer');
+  assert.equal(failedDisposable.disposable, true);
+  assert.equal(fs.existsSync(path.join(failedDisposable.state_root, '.noesis', 'instance.json')), true);
+});
+
+
+test('launch --rm marks setup exceptions as failed disposable instances', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const pamem = makeFailingPamemComponent(root);
+  fs.mkdirSync(home);
+
+  const failed = runNoesis([
+    'launch',
+    '--role', 'reviewer',
+    '--runtime', 'cli',
+    '--rm',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], { cwd: root, home, check: false });
+
+  assert.equal(failed.status, 1);
+  assert.match(failed.stderr, /intentional setup failure/);
+
+  const listed = JSON.parse(runNoesis(['list', '--json'], { cwd: root, home }).stdout);
+  const failedDisposable = listed.agents.find((agent) => agent.status === 'failed-disposable');
+
+  assert.equal(Boolean(failedDisposable), true);
+  assert.equal(failedDisposable.role, 'reviewer');
+  assert.equal(failedDisposable.disposable, true);
+  assert.equal(fs.existsSync(path.join(failedDisposable.state_root, '.noesis', 'instance.json')), true);
+});
+
+
+test('task instance sessions are recorded without injecting session history into startup notes', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const pamem = makePamemComponent(root);
+  fs.mkdirSync(home);
+
+  const result = runNoesis([
+    'launch',
+    '--name', 'session-cleanup',
+    '--role', 'coder',
+    '--runtime', 'cli',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--memory-repo', memory,
+    '--',
+    'echo',
+    'ok',
+  ], { cwd: root, home });
+
+  assert.equal(result.stdout.includes('ok'), true);
+
+  const listed = JSON.parse(runNoesis(['list', '--json'], { cwd: root, home }).stdout);
+  const instance = listed.agents.find((agent) => agent.name === 'session-cleanup');
+  assert.equal(Boolean(instance), true);
+
+  const currentTask = fs.readFileSync(path.join(instance.state_root, 'notes', 'current-task.md'), 'utf8');
+  const workLog = fs.readFileSync(path.join(instance.state_root, 'notes', 'work-log.md'), 'utf8');
+  const latestSession = JSON.parse(fs.readFileSync(path.join(instance.state_root, 'sessions', 'latest.json'), 'utf8'));
+
+  assert.equal(currentTask.includes('session_id'), false);
+  assert.equal(workLog.includes('session_id'), false);
+  assert.equal(typeof latestSession.session_id, 'string');
+  assert.equal(fs.existsSync(path.join(instance.state_root, 'sessions', `${latestSession.session_id}.json`)), true);
+
+  const resumed = JSON.parse(runNoesis([
+    'launch',
+    '--name', 'session-cleanup',
+    '--resume',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--json',
+  ], { cwd: root, home }).stdout);
+
+  assert.equal(resumed.runtime, 'cli');
+  assert.equal(resumed.runtime_state.root, instance.state_root);
+  assert.deepEqual(resumed.launch_command, ['echo', 'ok']);
 });
 
 
@@ -481,6 +808,6 @@ test('launch command help is available from top-level help', (t) => {
   assert.match(runNoesis(['help', 'update'], { cwd: root, home }).stdout, /Usage: noesis update/);
   assert.match(runNoesis(['help', 'list'], { cwd: root, home }).stdout, /Usage: noesis list/);
   assert.match(runNoesis(['help', 'remove'], { cwd: root, home }).stdout, /Usage: noesis remove/);
-  assert.match(runNoesis(['--help'], { cwd: root, home }).stdout, /noesis launch --profile/);
+  assert.match(runNoesis(['--help'], { cwd: root, home }).stdout, /noesis launch --name .* --role/);
   assert.match(runNoesis(['--help'], { cwd: root, home }).stdout, /noesis update/);
 });
