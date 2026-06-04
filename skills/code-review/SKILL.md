@@ -7,6 +7,12 @@ description: Review pull requests, git diffs, or local worktrees for bugs, regre
 
 Review code changes with a findings-first workflow that stays focused on the actual change set. This skill is for code-change review, not spec or document review.
 
+## Leaf Reviewer Fast Path
+
+If the current task labels you as a leaf reviewer, reviewer worker, bounded reviewer, one review dimension, or not the coordinator, do not run the orchestration workflow below. Inspect only the assigned source and artifact set, return raw findings only, and do not spawn, wait on, follow up with, message, close, or list other agents.
+
+This fast path exists for global skill installs where semantic matching can load this file for a worker prompt. In that case, treat the prompt as a single bounded review assignment and never launch another review fan-out.
+
 Keep this skill separate from `doc-review`. They share the same high-level pattern when fan-out is useful, but code review is diff-first and behavior-risk-first, while doc review is artifact/decision-boundary-first.
 
 ## Use This When
@@ -35,7 +41,7 @@ Examples:
 - `review_goal`: pre-merge review, regression check, runtime-risk review, test-gap review
 - `review_source`: `local_diff`, `github_pr`, `gitlab_mr`, or another explicit source type
 
-If either `review_target` or `review_goal` is missing, ask the smallest clarifying question needed before reviewing.
+If `review_target`, `review_goal`, or `review_source` is missing, ask the smallest clarifying question needed before reviewing.
 
 When the target is a PR or MR, include enough routing metadata before launching workers:
 

@@ -5,6 +5,12 @@ description: Main-session orchestration for repeated document and design review 
 
 # Doc Review
 
+## Leaf Reviewer Fast Path
+
+If the current task labels you as a leaf reviewer, reviewer worker, bounded reviewer, one review dimension, raw-findings-only reviewer, or not the coordinator, do not run the orchestration workflow below. Inspect only the assigned artifact set, answer only the assigned review question, return raw findings only, and do not spawn, wait on, follow up with, message, close, or list other agents.
+
+This fast path exists for global skill installs where semantic matching can load this file for a worker prompt. In that case, treat the prompt as a single bounded review assignment and never launch another review fan-out.
+
 ## Overview
 
 Use this skill for repeated or high-context review of non-code artifacts when one review pass is not enough and the work benefits from:
@@ -16,7 +22,7 @@ Use this skill for repeated or high-context review of non-code artifacts when on
 
 This skill is for document and design review orchestration only. `code-review` remains a separate skill because code review is diff-first and behavior-risk-first, while doc review is artifact/decision-boundary-first.
 
-Use this skill only in the main coordinating session. A reviewer worker spawned by this workflow is a leaf reviewer: it answers its assigned question directly and does not run this orchestration workflow again.
+Use this skill only in the main coordinating session. If a worker assignment loads this file anyway, the leaf reviewer fast path above applies: answer the assigned question directly and do not run this orchestration workflow again.
 
 The portable core of this skill is this `SKILL.md` file plus the files in `references/`.
 
@@ -96,7 +102,7 @@ Do not use this skill for:
    - Reviewers should verify current artifacts directly rather than trusting prior summaries, commit descriptions, or previous review output.
    - Reviewers should default to approval unless they find an execution-relevant gap, contradiction, or ambiguity.
    - Make the leaf-reviewer boundary explicit in every prompt: reviewer workers do not coordinate, spawn, wait on, follow up with, or close other agents.
-   - Reviewer workers must not invoke `doc-review` recursively. The main session has already applied this skill.
+   - Reviewer workers must not invoke the coordinating review workflow recursively. The main session has already applied it.
 7. Wait with a bounded staged policy.
    - Use environment-specific defaults where available.
    - If reviewers do not produce final results within the bounded wait window, close the stalled reviewers and continue in the main session with the same review dimensions.
@@ -123,7 +129,7 @@ Do not use this skill for:
 - Reviewer workers return raw findings only to the main session.
 - Reviewer workers do not use agent orchestration tools such as `spawn_agent`, `wait_agent`, `followup_task`, `send_message`, `close_agent`, or `list_agents`.
 - Reviewer workers do not wait for sibling reviewers or inspect agent registry state.
-- Reviewer workers do not invoke `doc-review` recursively; if they are launched by this workflow, they act as leaf reviewers only.
+- Reviewer workers do not invoke the coordinating review workflow recursively; if they are launched by this workflow, they act as leaf reviewers only.
 - Reviewer workers do not trust prior summaries as evidence that an issue is fixed or still open.
 - Only the main session synthesizes, deduplicates, and assigns final severity.
 - Only the main session updates durable memory.

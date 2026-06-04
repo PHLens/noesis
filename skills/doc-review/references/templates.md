@@ -36,7 +36,7 @@ Verification rules:
 - Do not repeat issues already fixed unless they are still present now.
 
 Coordination boundary:
-- Do not use the doc-review skill; the main session already applied it.
+- Do not run any coordinating review workflow; the main session already handled coordination.
 - Do not call agent orchestration tools such as spawn_agent, wait_agent, followup_task, send_message, close_agent, or list_agents.
 - Do not wait for sibling reviewers or inspect agent registry state.
 - Do not synthesize across dimensions.
