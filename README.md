@@ -71,6 +71,7 @@ Implemented:
 - `noesis eval handoff` for approved eval-proposal owner handoff reports
 - `noesis eval replay` for route/proposal golden-case replay in temporary workspaces
 - `noesis compression summary` for read-only repeated/stale learning artifact candidates
+- `noesis launch`, `noesis list`, and `noesis remove` for task-instance runtime management and compatibility agent homes
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
@@ -152,7 +153,7 @@ or binds the selected runtime. Lower-level bootstrap commands remain available
 for development and smoke tests.
 
 ```bash
-noesis launch --profile <role> [--runtime codex|claude|cli|slock] [--agent-id <id>] [--workspace <path>] [--json]
+noesis launch [--name <task>] [--role <role>] [--runtime codex|claude|cli] [--resume] [--rm] [--json]
 noesis update [--with pamem,loreforge|none] [--component-dir <path>] [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--no-install-components] [--skip-self] [--json]
 noesis list [--json]
 noesis remove [--workspace <path>|--agent-id <id>] [--json]
@@ -181,24 +182,42 @@ noesis skill add <name> [--source <path>] [--alias <alias>] [--runtime codex|cla
 noesis skill remove <name> [--runtime codex|claude|both] [--json]
 ```
 
-`noesis launch` is the normal route for local HS use:
+`noesis launch` is the normal route for local HS use. The user model is
+task-first: choose the task, choose the role/profile template, then Noesis
+creates or resumes a task instance. Runtime session ids are trace metadata under
+that instance, not user-facing work containers.
 
-- `launch --runtime codex|claude --agent-id <id>` prepares a CLI agent home
-  under `${XDG_DATA_HOME:-~/.local/share}/pamem/agents/<id>`, runs doctor, and
-  starts the selected runtime. Plain launch enables pamem only by default;
-  LoreForge is enabled when the user passes `--with loreforge`, a LoreForge
-  component source, or wiki/domain setup options. With `--json`, launch reports
-  the command that would run without launching the process.
-- `launch --runtime slock --workspace <path>` prepares or repairs an existing
-  Slock workspace and reports status. It does not create a Slock agent and does
-  not resume one; Slock owns that lifecycle.
+- `launch --name <task> --role <role> --runtime codex|claude|cli` creates a
+  persistent task instance under
+  `${XDG_DATA_HOME:-~/.local/share}/noesis/instances/<internal-id>`, stores the
+  user-facing name as a quick-resume handle, runs doctor, materializes the
+  role's default skill visibility, creates task-local `plan/`, `execution/`,
+  `artifacts/`, and `scratch/` directories, and starts the selected runtime. With
+  `--json`, launch reports the command that would run without launching the
+  process.
+- `launch --name <task> --resume` resumes an existing named task instance. Role,
+  runtime, memory repo binding, workspace paths, and task directory are read from
+  the stored instance config.
+- `launch --role <role> --runtime codex|claude|cli` creates an unnamed persistent
+  task instance. Noesis generates and reports a readable handle plus an
+  immutable internal instance id.
+- `launch --role reviewer --runtime codex --rm` creates a disposable one-shot
+  task instance. Successful disposable runs are removed from normal list/status
+  surfaces; failed or interrupted disposable instances are preserved with an
+  explicit failed-disposable marker and cleanup guidance.
+- `launch --profile <role> --runtime codex|claude --agent-id <id>` remains a
+  deprecated compatibility path for existing pamem CLI agent homes under
+  `${XDG_DATA_HOME:-~/.local/share}/pamem/agents/<id>`.
+- `launch --profile <role> --runtime slock --workspace <path>` prepares or
+  repairs an existing Slock workspace and reports status. It does not create a
+  Slock agent and does not resume one; Slock owns that lifecycle.
 - `update` is the Noesis user-facing replacement for component-local update
   entrypoints. It updates Noesis when the package is a git checkout, resolves
   pamem/LoreForge through the same component rules as launch/setup, installs
   missing enabled components into the managed component directory by default,
   and fast-forwards resolved git checkouts.
 - `list` is the Noesis user-facing replacement for `pamem list`; it lists
-  configured CLI agent homes and local Slock workspaces.
+  task instances, compatibility CLI agent homes, and local Slock workspaces.
 - `remove` is the Noesis user-facing replacement for `pamem remove`; it removes
   launch integration such as Codex hooks and pamem skill links while preserving
   `.noesis`, pamem config, shared memory repos, and LoreForge wiki content.
@@ -257,22 +276,27 @@ For a source checkout workflow, local component roots can still be passed
 explicitly to `launch`:
 
 ```bash
-noesis launch --runtime codex --agent-id researcher-local \
-  --profile researcher \
+noesis launch --name research-routing --runtime codex \
+  --role researcher \
   --component pamem=/path/to/pamem \
   --component loreforge=/path/to/LoreForge \
   --wiki /path/to/wiki \
   --domain research
 ```
 
-When pamem is enabled, `--profile <onboarding|coder|reviewer|researcher>`
-is required so setup does not silently create an onboarding/default memory
-binding. `launch --runtime codex|claude|cli` maps to pamem runtime `cli`, while
-`launch --runtime slock` maps to pamem runtime `slock`. Use `--agent-id`,
-`--memory-repo`,
-`--git-author-name`, and `--git-author-email` to pass the corresponding
-`pamem setup` settings. Use `--with none` or `--with loreforge` when you only
-want Noesis/LoreForge bootstrap without pamem.
+When pamem is enabled, new task instances require `--role
+<coder|reviewer|researcher|planner|architect>` so setup does not silently create
+an onboarding/default memory binding. Existing named task instances can omit
+`--role` because role is read from stored instance metadata. `--profile` remains
+accepted as a compatibility alias. `launch --runtime codex|claude|cli` maps to
+pamem runtime `cli`, while `launch --runtime slock --workspace <path>` maps to
+pamem runtime `slock` for existing Slock workspace binding. Ordinary
+task launch does not require `--memory-repo`: new instances inherit the
+configured/default pamem memory repo and store that binding in instance
+metadata; existing instances reject ordinary launches that request a different
+memory repo. Use `--git-author-name` and `--git-author-email` to pass the
+corresponding `pamem setup` settings. Use `--with none` or `--with loreforge`
+when you only want Noesis/LoreForge bootstrap without pamem.
 
 When LoreForge is enabled with a local source, setup installs the LoreForge
 entry skill. If `--loreforge-wiki <path>` and `--loreforge-domain <name>` are

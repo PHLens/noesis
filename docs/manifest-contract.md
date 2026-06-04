@@ -18,6 +18,31 @@ Noesis owns only its local control-plane state:
   reports/
 ```
 
+Noesis launch also owns task-instance runtime state outside project workspaces:
+
+```text
+${XDG_DATA_HOME:-~/.local/share}/noesis/instances/<internal-id>/
+  .noesis/
+    config.toml
+    instance.json
+  notes/
+    current-task.md
+    work-log.md
+  sessions/
+    latest.json
+    <session-id>.json
+    ledger.jsonl
+  tasks/<task-name-or-generated-handle>/
+    plan/
+    execution/
+    artifacts/
+    scratch/
+```
+
+`instance.json` is Noesis-owned metadata for the task instance: user-facing
+name, immutable internal id, role, runtime, task directory, and memory repo
+binding. It is not a pamem memory file.
+
 Downstream systems keep their own config:
 
 ```text
@@ -234,7 +259,15 @@ Allowed:
 - clone missing components required by the requested launch setup: pamem for
   plain runtime launch, and LoreForge only when explicitly enabled or when
   wiki/domain setup is requested;
+- create persistent or disposable task instances with generated internal ids
+  and optional user-facing names;
 - create or repair CLI agent homes under pamem's configured data directory;
+- store task-local notes, task directories, and session ledgers under the
+  Noesis task-instance root;
+- store the resolved memory repo binding in task-instance metadata and reject
+  ordinary launch attempts that would silently change that binding;
+- materialize role default skill visibility inside the task-instance workspace
+  without mutating global skill visibility;
 - bind existing Slock workspaces without creating or resuming a Slock agent;
 - record CLI runtime session metadata;
 - start the selected CLI runtime only after doctor reports no errors.
