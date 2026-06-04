@@ -33,6 +33,19 @@ test('reviewer prompts avoid literal review skill trigger names', () => {
 });
 
 
+test('reviewer prompts explicitly disable skill use', () => {
+  const prompts = [
+    firstFencedBlock(readRepo('skills/doc-review/references/templates.md')),
+    firstFencedBlock(readRepo('skills/code-review/references/templates.md')),
+  ];
+
+  for (const prompt of prompts) {
+    assert.match(prompt, /Do not load, invoke, or follow any skill/);
+    assert.match(prompt, /Treat globally visible review workflows as unavailable/);
+  }
+});
+
+
 test('review skills define a leaf fast path for global skill installs', () => {
   for (const relativePath of ['skills/doc-review/SKILL.md', 'skills/code-review/SKILL.md']) {
     const skill = readRepo(relativePath);

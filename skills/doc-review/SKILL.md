@@ -7,7 +7,7 @@ description: Main-session orchestration for repeated document and design review 
 
 ## Leaf Reviewer Fast Path
 
-If the current task labels you as a leaf reviewer, reviewer worker, bounded reviewer, one review dimension, raw-findings-only reviewer, or not the coordinator, do not run the orchestration workflow below. Inspect only the assigned artifact set, answer only the assigned review question, return raw findings only, and do not spawn, wait on, follow up with, message, close, or list other agents.
+If the current task labels you as a leaf reviewer, reviewer worker, bounded reviewer, one review dimension, raw-findings-only reviewer, or not the coordinator, do not run the orchestration workflow below. Inspect only the assigned artifact set, answer only the assigned review question, return raw findings only, do not load or invoke any additional skills or reusable workflows, and do not spawn, wait on, follow up with, message, close, or list other agents.
 
 This fast path exists for global skill installs where semantic matching can load this file for a worker prompt. In that case, treat the prompt as a single bounded review assignment and never launch another review fan-out.
 

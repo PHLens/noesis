@@ -35,6 +35,10 @@ Verification rules:
 - Verify directly from the current artifact set.
 - Do not repeat issues already fixed unless they are still present now.
 
+Skill policy:
+- Do not load, invoke, or follow any skill, capability, or reusable workflow while acting as this leaf reviewer.
+- Treat globally visible review workflows as unavailable for this assignment.
+
 Coordination boundary:
 - Do not run any coordinating review workflow; the main session already handled coordination.
 - Do not call agent orchestration tools such as spawn_agent, wait_agent, followup_task, send_message, close_agent, or list_agents.
