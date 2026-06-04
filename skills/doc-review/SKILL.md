@@ -1,9 +1,15 @@
 ---
 name: doc-review
-description: Orchestrate repeated document and design review work by splitting review into explicit dimensions, running one subagent per dimension by default, and synthesizing a single findings-first result in the main session. Use for design docs, specs, plans, PRDs, RFCs, or similar non-code artifacts when review needs deduplication, severity judgment, and a unified response. Supports override review dimensions, findings templates, and main-session fallback when subagent fan-out is unnecessary or unstable.
+description: Main-session orchestration for repeated document and design review work by splitting review into explicit dimensions, running one leaf reviewer per dimension by default, and synthesizing a single findings-first result. Use for design docs, specs, plans, PRDs, RFCs, or similar non-code artifacts when review needs deduplication, severity judgment, and a unified response. Do not use inside a leaf reviewer worker spawned by this workflow.
 ---
 
 # Doc Review
+
+## Leaf Reviewer Fast Path
+
+If the current task labels you as a leaf reviewer, reviewer worker, bounded reviewer, one review dimension, raw-findings-only reviewer, or not the coordinator, do not run the orchestration workflow below. Inspect only the assigned artifact set, answer only the assigned review question, return raw findings only, do not load or invoke any additional skills or reusable workflows, and do not spawn, wait on, follow up with, message, close, or list other agents.
+
+This fast path exists for global skill installs where semantic matching can load this file for a worker prompt. In that case, treat the prompt as a single bounded review assignment and never launch another review fan-out.
 
 ## Overview
 
@@ -14,7 +20,9 @@ Use this skill for repeated or high-context review of non-code artifacts when on
 - main-session synthesis and deduplication
 - a single findings-first reply
 
-This v1 is for document and design review orchestration only. Code review can be added later as an extension.
+This skill is for document and design review orchestration only. `code-review` remains a separate skill because code review is diff-first and behavior-risk-first, while doc review is artifact/decision-boundary-first.
+
+Use this skill only in the main coordinating session. If a worker assignment loads this file anyway, the leaf reviewer fast path above applies: answer the assigned question directly and do not run this orchestration workflow again.
 
 The portable core of this skill is this `SKILL.md` file plus the files in `references/`.
 
@@ -33,6 +41,7 @@ The main session should provide:
 
 - `review targets`
 - `review goal`
+- `review source` when targets come from a PR, MR, branch, or local diff
 
 Optional inputs:
 
@@ -40,6 +49,16 @@ Optional inputs:
 - doc type
 - known constraints
 - extra context
+
+When the target is hosted in version control, include enough source metadata before launching reviewers:
+
+- source type: `local_diff`, `github_pr`, `gitlab_mr`, or another explicit source type
+- repository remote URL or local path
+- base ref and head ref when relevant
+- PR or MR URL/number when available
+- exact artifact source reviewers should use, such as local files, local `git diff`, GitHub PR API, or GitLab MR API
+
+Do not make reviewer workers infer GitHub vs GitLab from generic PR/MR wording. If no matching host-specific tool is available, pass local artifacts or local diffs.
 
 ## When To Use
 
@@ -68,8 +87,9 @@ Do not use this skill for:
    - Default to one reviewer worker per review dimension.
    - Fall back to main-session-only review if the task is too small or the reviewer backend is unstable.
 4. Choose the reviewer backend.
-   - In Codex environments, native reviewer subagents are acceptable.
+   - In Codex environments, native reviewer subagents are acceptable only when they can reliably stay leaf workers.
    - In Claude environments, prefer launching Codex reviewer workers through `codex exec` rather than Claude-native subagents.
+   - If a backend lets reviewer workers call agent orchestration tools, consume sibling or parent mailbox updates, or recurse into this workflow, treat that backend as unstable for this review.
    - If available worker slots are fewer than the chosen review dimensions, batch the reviewers instead of failing the review.
 5. Scope each reviewer's artifact set.
    - Start with the smallest authoritative artifact set that can answer the review dimension.
@@ -81,9 +101,13 @@ Do not use this skill for:
    - Each reviewer should get one explicit review question, not a broad "review everything" brief.
    - Reviewers should verify current artifacts directly rather than trusting prior summaries, commit descriptions, or previous review output.
    - Reviewers should default to approval unless they find an execution-relevant gap, contradiction, or ambiguity.
+   - Make the leaf-reviewer boundary explicit in every prompt: reviewer workers do not coordinate, spawn, wait on, follow up with, or close other agents.
+   - Reviewer workers must not invoke the coordinating review workflow recursively. The main session has already applied it.
 7. Wait with a bounded staged policy.
    - Use environment-specific defaults where available.
    - If reviewers do not produce final results within the bounded wait window, close the stalled reviewers and continue in the main session with the same review dimensions.
+   - If a reviewer violates the leaf boundary, discard that worker output and treat the backend as unstable.
+   - If the user forbids main-session fallback and the reviewer backend is unstable, stop and report the infrastructure failure instead of synthesizing.
 8. Synthesize in the main session.
    - Start from reviewer status signals first, then inspect the underlying findings.
    - Deduplicate findings.
@@ -103,6 +127,9 @@ Do not use this skill for:
 - Reviewer workers do not reply to the user directly.
 - Reviewer workers do not update memory files.
 - Reviewer workers return raw findings only to the main session.
+- Reviewer workers do not use agent orchestration tools such as `spawn_agent`, `wait_agent`, `followup_task`, `send_message`, `close_agent`, or `list_agents`.
+- Reviewer workers do not wait for sibling reviewers or inspect agent registry state.
+- Reviewer workers do not invoke the coordinating review workflow recursively; if they are launched by this workflow, they act as leaf reviewers only.
 - Reviewer workers do not trust prior summaries as evidence that an issue is fixed or still open.
 - Only the main session synthesizes, deduplicates, and assigns final severity.
 - Only the main session updates durable memory.
@@ -112,6 +139,7 @@ Do not use this skill for:
 
 - Treating reviewer outputs as final user-facing review results without synthesis
 - Letting different reviewers report duplicate or conflicting findings directly to the user
+- Letting a reviewer worker become a coordinator, wait for sibling reviewers, or consume the main session's mailbox updates
 - Mixing review orchestration with immediate patch generation by default
 - Expanding the scope to code review in v1
 - Asking reviewers to perform broad "find anything wrong" sweeps when a narrower review question would produce higher-signal output

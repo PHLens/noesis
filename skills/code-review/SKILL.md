@@ -7,6 +7,14 @@ description: Review pull requests, git diffs, or local worktrees for bugs, regre
 
 Review code changes with a findings-first workflow that stays focused on the actual change set. This skill is for code-change review, not spec or document review.
 
+## Leaf Reviewer Fast Path
+
+If the current task labels you as a leaf reviewer, reviewer worker, bounded reviewer, one review dimension, or not the coordinator, do not run the orchestration workflow below. Inspect only the assigned source and artifact set, return raw findings only, do not load or invoke any additional skills or reusable workflows, and do not spawn, wait on, follow up with, message, close, or list other agents.
+
+This fast path exists for global skill installs where semantic matching can load this file for a worker prompt. In that case, treat the prompt as a single bounded review assignment and never launch another review fan-out.
+
+Keep this skill separate from `doc-review`. They share the same high-level pattern when fan-out is useful, but code review is diff-first and behavior-risk-first, while doc review is artifact/decision-boundary-first.
+
 ## Use This When
 
 Use this skill when the user asks to:
@@ -25,13 +33,25 @@ This skill needs:
 
 1. `review_target`
 2. `review_goal`
+3. `review_source`
 
 Examples:
 
 - `review_target`: PR URL, local diff, branch diff, worktree delta, base/head range
 - `review_goal`: pre-merge review, regression check, runtime-risk review, test-gap review
+- `review_source`: `local_diff`, `github_pr`, `gitlab_mr`, or another explicit source type
 
-If either is missing, ask the smallest clarifying question needed before reviewing.
+If `review_target`, `review_goal`, or `review_source` is missing, ask the smallest clarifying question needed before reviewing.
+
+When the target is a PR or MR, include enough routing metadata before launching workers:
+
+- source type: `github_pr`, `gitlab_mr`, or `local_diff`
+- repository remote URL and host
+- base ref and head ref
+- PR or MR URL/number when available
+- exact diff source the reviewer should use, such as local `git diff origin/main...HEAD`, GitHub PR API, or GitLab MR API
+
+Do not make workers infer GitHub vs GitLab from the word "PR" or "MR". If no matching host-specific tool is available, pass a local diff or changed-file list instead of letting workers guess.
 
 ## Default Workflow
 
@@ -48,6 +68,8 @@ Review the change set first, then only the supporting context needed to evaluate
 
 Usually this means:
 
+- explicit source type and host, such as `github_pr`, `gitlab_mr`, or `local_diff`
+- base/head refs or PR/MR URL
 - changed files
 - relevant interface or dependency files
 - targeted tests or test failures
@@ -84,6 +106,10 @@ Escalate to targeted fan-out only when the diff justifies it, such as:
 - complicated testing or migration risk
 
 The main session always owns synthesis, deduplication, and the final user-facing result.
+
+When fan-out is used, reviewer workers are leaf reviewers. They inspect only their assigned code-review dimension and return raw findings to the main session. They do not run another review orchestration, wait for sibling reviewers, or use agent coordination tools.
+
+Use native reviewer subagents only when the runtime can reliably keep them leaf workers. If workers can call agent orchestration tools, consume sibling or parent mailbox updates, or launch their own review fan-out, use an isolated reviewer process or keep the review in the main session.
 
 ### 5. Review statically first
 
@@ -129,6 +155,9 @@ Reviewer workers must:
 - not reply to the user directly
 - not write memory
 - not implement fixes
+- not spawn, wait on, follow up with, message, close, or list other agents
+- not wait for sibling reviewers or inspect agent registry state
+- not run another review fan-out from inside the worker
 
 ## Output Rules
 
@@ -151,6 +180,7 @@ If the caller asks for inline-comment-ready output, you may switch to that mode.
 - Do not audit the entire project unless asked.
 - Do not treat session history as the review target.
 - Do not overstate uncertain claims.
+- Do not let a reviewer worker become a coordinator or consume sibling reviewer output.
 
 If the request clearly depends on document/spec compliance, explicitly recommend `doc-review`.
 
