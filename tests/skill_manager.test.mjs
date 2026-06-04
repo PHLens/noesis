@@ -26,10 +26,10 @@ function withTempDir(t) {
 
 
 function makeProjectPamem(t, outputRoot) {
-  const binDir = path.join(REPO_ROOT, 'node_modules', '.bin');
+  const root = withTempDir(t);
+  const binDir = path.join(root, 'bin');
   const pamem = path.join(binDir, process.platform === 'win32' ? 'pamem.cmd' : 'pamem');
   fs.mkdirSync(binDir, { recursive: true });
-  const previous = fs.existsSync(pamem) ? fs.readFileSync(pamem) : null;
   fs.writeFileSync(
     pamem,
     process.platform === 'win32'
@@ -37,18 +37,15 @@ function makeProjectPamem(t, outputRoot) {
       : `#!/bin/sh\nprintf '%s\\n' '{"status":"ok","root":"${outputRoot}","memory_repo":"${path.join(outputRoot, 'memory')}","agent_home":"${outputRoot}","role":"coder","runtime":"cli"}'\n`,
   );
   fs.chmodSync(pamem, 0o755);
-  t.after(() => {
-    if (previous === null) fs.rmSync(pamem, { force: true });
-    else fs.writeFileSync(pamem, previous);
-  });
+  return { pamem, env: { NOESIS_PAMEM_BIN: pamem } };
 }
 
 
 function makeProjectPamemCommand(t) {
-  const binDir = path.join(REPO_ROOT, 'node_modules', '.bin');
+  const root = withTempDir(t);
+  const binDir = path.join(root, 'bin');
   const pamem = path.join(binDir, process.platform === 'win32' ? 'pamem.cmd' : 'pamem');
   fs.mkdirSync(binDir, { recursive: true });
-  const previous = fs.existsSync(pamem) ? fs.readFileSync(pamem) : null;
   fs.writeFileSync(
     pamem,
     process.platform === 'win32'
@@ -57,7 +54,6 @@ function makeProjectPamemCommand(t) {
   );
   fs.chmodSync(pamem, 0o755);
   const helper = path.join(binDir, 'pamem-fake.mjs');
-  const previousHelper = fs.existsSync(helper) ? fs.readFileSync(helper) : null;
   fs.writeFileSync(
     helper,
     `import fs from 'node:fs';
@@ -102,12 +98,7 @@ if (command === 'remove') {
 process.exit(2);
 `,
   );
-  t.after(() => {
-    if (previous === null) fs.rmSync(pamem, { force: true });
-    else fs.writeFileSync(pamem, previous);
-    if (previousHelper === null) fs.rmSync(helper, { force: true });
-    else fs.writeFileSync(helper, previousHelper);
-  });
+  return { pamem, env: { NOESIS_PAMEM_BIN: pamem } };
 }
 
 
@@ -135,7 +126,17 @@ function makeFakeClaudeWithState(t) {
   const root = withTempDir(t);
   const binDir = path.join(root, 'bin');
   const stateFile = path.join(root, 'plugins.json');
+  const installPath = path.join(root, 'cache', 'phlens', 'pamem', '0.9.2');
   fs.mkdirSync(binDir, { recursive: true });
+  fs.mkdirSync(path.join(installPath, 'hooks'), { recursive: true });
+  fs.writeFileSync(path.join(installPath, 'hooks', 'hooks.json'), JSON.stringify({
+    hooks: {
+      SessionStart: [{
+        matcher: 'startup|resume|clear|compact',
+        hooks: [{ type: 'command', command: '"${CLAUDE_PLUGIN_ROOT}"/scripts/memory-session-start.sh' }],
+      }],
+    },
+  }, null, 2));
   fs.writeFileSync(stateFile, '[]\n');
   const claude = path.join(binDir, 'claude');
   fs.writeFileSync(
@@ -145,20 +146,36 @@ node - "$@" <<'NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 const stateFile = process.env.FAKE_CLAUDE_STATE;
+const installPath = process.env.FAKE_CLAUDE_INSTALL_PATH;
+const version = process.env.FAKE_CLAUDE_PLUGIN_VERSION || '0.9.2';
 const args = process.argv.slice(2);
 const entries = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
 if (args[0] === 'plugin' && args[1] === 'list' && args[2] === '--json') {
   console.log(JSON.stringify(entries));
   process.exit(0);
 }
-if (args[0] === 'plugin' && (args[1] === 'install' || args[1] === 'uninstall')) {
+if (args[0] === 'plugin' && (args[1] === 'install' || args[1] === 'uninstall' || args[1] === 'update')) {
   const key = args[2];
   const scope = args[args.indexOf('-s') + 1] || 'user';
   fs.appendFileSync(process.env.FAKE_CLAUDE_LOG, process.cwd() + '|' + args.join(' ') + '\\n');
   const existing = entries.find((entry) => entry.id === key && entry.scope === scope && (!entry.projectPath || path.resolve(entry.projectPath) === process.cwd()));
   if (args[1] === 'install') {
-    if (existing) existing.enabled = true;
-    else entries.push({ id: key, scope, enabled: true, projectPath: scope === 'project' ? process.cwd() : undefined });
+    if (existing) {
+      existing.enabled = true;
+      existing.version = existing.version || version;
+      existing.installPath = existing.installPath || installPath;
+    } else {
+      entries.push({ id: key, scope, enabled: true, version, installPath, projectPath: scope === 'project' ? process.cwd() : undefined });
+    }
+  } else if (args[1] === 'update') {
+    if (existing) {
+      existing.enabled = true;
+      existing.version = version;
+      existing.installPath = installPath;
+      delete existing.errors;
+    } else {
+      entries.push({ id: key, scope, enabled: true, version, installPath, projectPath: scope === 'project' ? process.cwd() : undefined });
+    }
   } else if (existing) {
     existing.enabled = false;
   }
@@ -170,7 +187,7 @@ NODE
 `,
   );
   fs.chmodSync(claude, 0o755);
-  return { binDir, stateFile };
+  return { binDir, stateFile, installPath, version: '0.9.2' };
 }
 
 
@@ -274,7 +291,7 @@ test('add, list, inspect, verify, and remove external skill', (t) => {
   assert.equal(path.isAbsolute(fs.readlinkSync(codexLink)), false);
   assert.equal(fs.realpathSync(codexLink), fs.realpathSync(source));
 
-  const listing = runNoesis(['skill', 'list', '--json'], { cwd: workspace, home });
+  const listing = runNoesis(['skill', 'list', '--json'], { cwd: workspace, home, env: { PATH: '' } });
   const listData = JSON.parse(listing.stdout);
   assert.equal(listData.skills[0].name, name);
   assert.equal(listData.skills[0].status, 'ok');
@@ -597,18 +614,18 @@ exit 1
 });
 
 
-test('agent-id resolution prefers installed pamem dependency bin', (t) => {
+test('agent-id resolution prefers configured pamem bin over PATH', (t) => {
   const root = withTempDir(t);
   const home = path.join(root, 'home');
   const workspace = path.join(root, 'agent-home');
   fs.mkdirSync(home);
   fs.mkdirSync(workspace);
-  makeProjectPamem(t, workspace);
+  const fakePamem = makeProjectPamem(t, workspace);
 
   const result = runNoesis(['skill', 'list', '--agent-id', 'agent-1', '--json'], {
     cwd: root,
     home,
-    env: { PATH: root },
+    env: { PATH: root, ...fakePamem.env },
   });
   const data = JSON.parse(result.stdout);
 
@@ -647,7 +664,7 @@ test('list and inspect report Claude plugin capabilities from settings', (t) => 
     `${JSON.stringify({ enabledPlugins: { 'humanize@humania': true } }, null, 2)}\n`,
   );
 
-  const listing = runNoesis(['skill', 'list', '--json'], { cwd: workspace, home });
+  const listing = runNoesis(['skill', 'list', '--json'], { cwd: workspace, home, env: { PATH: '' } });
   const listData = JSON.parse(listing.stdout);
   assert.deepEqual(listData.skills, []);
   assert.equal(listData.capabilities.length, 1);
@@ -656,14 +673,14 @@ test('list and inspect report Claude plugin capabilities from settings', (t) => 
   assert.equal(listData.capabilities[0].status, 'ok');
   assert.equal(listData.capabilities[0].runtimes.claude.key, 'humanize@humania');
 
-  const inspect = runNoesis(['skill', 'inspect', 'humanize', '--json'], { cwd: workspace, home });
+  const inspect = runNoesis(['skill', 'inspect', 'humanize', '--json'], { cwd: workspace, home, env: { PATH: '' } });
   const inspectData = JSON.parse(inspect.stdout);
   assert.equal(inspectData.source.status, 'not-applicable');
   assert.equal(inspectData.skill, null);
   assert.equal(inspectData.capability.name, 'humanize');
   assert.equal(inspectData.capability.status, 'ok');
 
-  const verify = runNoesis(['skill', 'verify', 'humanize', '--json'], { cwd: workspace, home });
+  const verify = runNoesis(['skill', 'verify', 'humanize', '--json'], { cwd: workspace, home, env: { PATH: '' } });
   assert.equal(JSON.parse(verify.stdout).status, 'ok');
 });
 
@@ -843,6 +860,8 @@ test('global plugin capability uses home settings only', (t) => {
       PATH: `${fakeClaude.binDir}${path.delimiter}${process.env.PATH || ''}`,
       FAKE_CLAUDE_LOG: logFile,
       FAKE_CLAUDE_STATE: fakeClaude.stateFile,
+      FAKE_CLAUDE_INSTALL_PATH: fakeClaude.installPath,
+      FAKE_CLAUDE_PLUGIN_VERSION: fakeClaude.version,
     },
   });
   const data = JSON.parse(add.stdout);
@@ -891,7 +910,7 @@ test('inspect reports pamem runtime capability state', (t) => {
   fs.writeFileSync(path.join(workspace, 'notes', 'current-task.md'), '# Current Task\n');
   fs.writeFileSync(path.join(workspace, 'notes', 'work-log.md'), '# Work Log\n');
 
-  const inspect = runNoesis(['skill', 'inspect', 'pamem', '--json'], { cwd: workspace, home });
+  const inspect = runNoesis(['skill', 'inspect', 'pamem', '--json'], { cwd: workspace, home, env: { PATH: '' } });
   const data = JSON.parse(inspect.stdout);
 
   assert.equal(data.source.status, 'not-applicable');
@@ -903,20 +922,20 @@ test('inspect reports pamem runtime capability state', (t) => {
   assert.equal(data.capability.runtimes.codex.config.codex_hooks, true);
   assert.equal(data.capability.runtimes.codex.hooks.session_start, true);
 
-  const verify = runNoesis(['skill', 'verify', 'pamem', '--json'], { cwd: workspace, home });
+  const verify = runNoesis(['skill', 'verify', 'pamem', '--json'], { cwd: workspace, home, env: { PATH: '' } });
   assert.equal(JSON.parse(verify.stdout).status, 'ok');
 });
 
 
-test('add and remove pamem codex runtime via pamem dependency bin', (t) => {
+test('add and remove pamem codex runtime via configured pamem bin', (t) => {
   const root = withTempDir(t);
   const home = path.join(root, 'home');
   const workspace = path.join(root, 'workspace');
   fs.mkdirSync(home);
   fs.mkdirSync(workspace);
-  makeProjectPamemCommand(t);
+  const fakePamem = makeProjectPamemCommand(t);
 
-  const add = runNoesis(['skill', 'add', 'pamem', '--runtime', 'codex', '--json'], { cwd: workspace, home });
+  const add = runNoesis(['skill', 'add', 'pamem', '--runtime', 'codex', '--json'], { cwd: workspace, home, env: fakePamem.env });
   const addData = JSON.parse(add.stdout);
   assert.equal(addData.actions[0].type, 'pamem-runtime');
   assert.equal(addData.capability.status, 'ok');
@@ -924,7 +943,7 @@ test('add and remove pamem codex runtime via pamem dependency bin', (t) => {
   assert.equal(fs.existsSync(path.join(workspace, '.claude', 'settings.json')), false);
   assert.equal(JSON.parse(fs.readFileSync(path.join(workspace, '.codex', 'hooks.json'), 'utf8')).hooks.SessionStart[0].hooks[0].command, '.pamem/scripts/memory-session-start.sh');
 
-  const remove = runNoesis(['skill', 'remove', 'pamem', '--runtime', 'codex', '--json'], { cwd: workspace, home });
+  const remove = runNoesis(['skill', 'remove', 'pamem', '--runtime', 'codex', '--json'], { cwd: workspace, home, env: fakePamem.env });
   const removeData = JSON.parse(remove.stdout);
   assert.equal(removeData.actions[0].action, 'removed');
   assert.equal(removeData.capability.status, 'missing');
@@ -944,6 +963,8 @@ test('add and remove pamem Claude runtime via Claude CLI', (t) => {
     PATH: `${fakeClaude.binDir}${path.delimiter}${process.env.PATH || ''}`,
     FAKE_CLAUDE_LOG: logFile,
     FAKE_CLAUDE_STATE: fakeClaude.stateFile,
+    FAKE_CLAUDE_INSTALL_PATH: fakeClaude.installPath,
+    FAKE_CLAUDE_PLUGIN_VERSION: fakeClaude.version,
   };
 
   const add = runNoesis(['skill', 'add', 'pamem', '--runtime', 'claude', '--json'], {
@@ -983,12 +1004,12 @@ test('pamem codex install passes agent-home mode for pamem agent homes', (t) => 
   const workspace = path.join(root, 'agent-home');
   fs.mkdirSync(home);
   fs.mkdirSync(workspace);
-  makeProjectPamemCommand(t);
+  const fakePamem = makeProjectPamemCommand(t);
 
   const result = runNoesis(['skill', 'add', 'pamem', '--agent-id', 'agent-1', '--runtime', 'codex', '--json'], {
     cwd: root,
     home,
-    env: { FAKE_PAMEM_AGENT_ROOT: workspace },
+    env: { FAKE_PAMEM_AGENT_ROOT: workspace, ...fakePamem.env },
   });
   const data = JSON.parse(result.stdout);
   assert.equal(data.target.kind, 'agent-home');
@@ -1011,12 +1032,12 @@ test('pamem codex install does not force agent-home mode for agent target with w
   fs.mkdirSync(home);
   fs.mkdirSync(path.join(workspace, '.pamem'), { recursive: true });
   fs.writeFileSync(path.join(workspace, '.pamem', 'config.toml'), 'default_profile = "coder"\n');
-  makeProjectPamemCommand(t);
+  const fakePamem = makeProjectPamemCommand(t);
 
   const result = runNoesis(['skill', 'add', 'pamem', '--agent-id', 'agent-1', '--runtime', 'codex', '--json'], {
     cwd: root,
     home,
-    env: { FAKE_PAMEM_AGENT_ROOT: workspace },
+    env: { FAKE_PAMEM_AGENT_ROOT: workspace, ...fakePamem.env },
   });
   const data = JSON.parse(result.stdout);
 

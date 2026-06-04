@@ -155,7 +155,17 @@ function makeFakeClaude(t, root) {
   const binDir = path.join(root, 'fake-bin');
   const stateFile = path.join(root, 'claude-plugins.json');
   const logFile = path.join(root, 'claude.log');
+  const installPath = path.join(root, 'fake-claude-cache', 'phlens', 'pamem', '0.9.2');
   fs.mkdirSync(binDir, { recursive: true });
+  fs.mkdirSync(path.join(installPath, 'hooks'), { recursive: true });
+  fs.writeFileSync(path.join(installPath, 'hooks', 'hooks.json'), JSON.stringify({
+    hooks: {
+      SessionStart: [{
+        matcher: 'startup|resume|clear|compact',
+        hooks: [{ type: 'command', command: '"${CLAUDE_PLUGIN_ROOT}"/scripts/memory-session-start.sh' }],
+      }],
+    },
+  }, null, 2));
   fs.writeFileSync(stateFile, '[]\n');
   const claude = path.join(binDir, 'claude');
   fs.writeFileSync(
@@ -165,20 +175,36 @@ node - "$@" <<'NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 const stateFile = process.env.FAKE_CLAUDE_STATE;
+const installPath = process.env.FAKE_CLAUDE_INSTALL_PATH;
+const version = process.env.FAKE_CLAUDE_PLUGIN_VERSION || '0.9.2';
 const args = process.argv.slice(2);
 const entries = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
 if (args[0] === 'plugin' && args[1] === 'list' && args[2] === '--json') {
   console.log(JSON.stringify(entries));
   process.exit(0);
 }
-if (args[0] === 'plugin' && (args[1] === 'install' || args[1] === 'uninstall')) {
+if (args[0] === 'plugin' && (args[1] === 'install' || args[1] === 'uninstall' || args[1] === 'update')) {
   const key = args[2];
   const scope = args[args.indexOf('-s') + 1] || 'user';
   fs.appendFileSync(process.env.FAKE_CLAUDE_LOG, process.cwd() + '|' + args.join(' ') + '\\n');
   const existing = entries.find((entry) => entry.id === key && entry.scope === scope && (!entry.projectPath || path.resolve(entry.projectPath) === process.cwd()));
   if (args[1] === 'install') {
-    if (existing) existing.enabled = true;
-    else entries.push({ id: key, scope, enabled: true, projectPath: scope === 'project' ? process.cwd() : undefined });
+    if (existing) {
+      existing.enabled = true;
+      existing.version = existing.version || version;
+      existing.installPath = existing.installPath || installPath;
+    } else {
+      entries.push({ id: key, scope, enabled: true, version, installPath, projectPath: scope === 'project' ? process.cwd() : undefined });
+    }
+  } else if (args[1] === 'update') {
+    if (existing) {
+      existing.enabled = true;
+      existing.version = version;
+      existing.installPath = installPath;
+      delete existing.errors;
+    } else {
+      entries.push({ id: key, scope, enabled: true, version, installPath, projectPath: scope === 'project' ? process.cwd() : undefined });
+    }
   } else if (existing) {
     existing.enabled = false;
   }
@@ -190,7 +216,7 @@ NODE
 `,
   );
   fs.chmodSync(claude, 0o755);
-  return { binDir, logFile, stateFile };
+  return { binDir, logFile, stateFile, installPath, version: '0.9.2' };
 }
 
 
@@ -251,19 +277,99 @@ test('launch enables pamem Claude runtime capability', (t) => {
       PATH: `${fakeClaude.binDir}${path.delimiter}${process.env.PATH || ''}`,
       FAKE_CLAUDE_LOG: fakeClaude.logFile,
       FAKE_CLAUDE_STATE: fakeClaude.stateFile,
+      FAKE_CLAUDE_INSTALL_PATH: fakeClaude.installPath,
+      FAKE_CLAUDE_PLUGIN_VERSION: fakeClaude.version,
     },
   });
   const data = JSON.parse(result.stdout);
   const action = data.setup.actions.find((item) => item.phase === 'skill' && item.name === 'pamem');
+  const agentHome = path.join(home, '.local', 'share', 'pamem', 'agents', 'claude-local');
+  const pluginState = JSON.parse(fs.readFileSync(fakeClaude.stateFile, 'utf8'))[0];
 
   assert.equal(data.status, 'ok');
   assert.deepEqual(data.launch_command, ['claude', '--dangerously-skip-permissions', '--help']);
   assert.equal(action?.status, 'ok');
   assert.equal(action.report.capability.runtimes.claude.status, 'ok');
   assert.equal(action.report.capability.runtimes.claude.source, 'claude-cli');
+  assert.equal(action.report.capability.runtimes.claude.scope, 'project');
+  assert.equal(action.report.capability.runtimes.claude.version, '0.9.2');
+  assert.equal(action.report.capability.runtimes.claude.install_path, fakeClaude.installPath);
+  assert.equal(action.report.capability.runtimes.claude.project_path, agentHome);
+  assert.equal(action.report.capability.runtimes.claude.standard_hook.status, 'ok');
+  assert.equal(action.report.capability.runtimes.claude.standard_hook.command, '"${CLAUDE_PLUGIN_ROOT}"/scripts/memory-session-start.sh');
   assert.equal(action.report.capability.runtimes.codex.status, 'ok');
-  assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'claude-local', '.claude', 'settings.json')), false);
+  assert.equal(pluginState.scope, 'project');
+  assert.equal(pluginState.version, '0.9.2');
+  assert.equal(pluginState.installPath, fakeClaude.installPath);
+  assert.equal(pluginState.projectPath, agentHome);
+  assert.equal(fs.existsSync(path.join(agentHome, '.claude', 'settings.json')), false);
   assert.match(fs.readFileSync(fakeClaude.logFile, 'utf8'), /plugin install pamem@phlens -s project/);
+});
+
+
+test('launch refreshes an already-enabled Claude pamem plugin when hook validation fails', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const pamem = makePamemComponent(root);
+  const fakeClaude = makeFakeClaude(t, root);
+  const agentHome = path.join(home, '.local', 'share', 'pamem', 'agents', 'claude-local');
+  fs.mkdirSync(path.join(agentHome, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(agentHome, '.claude', 'settings.json'), JSON.stringify({
+    enabledPlugins: { 'pamem@phlens': true },
+  }, null, 2));
+  fs.writeFileSync(fakeClaude.stateFile, JSON.stringify([{
+    id: 'pamem@phlens',
+    scope: 'project',
+    enabled: true,
+    version: '0.9.1',
+    installPath: fakeClaude.installPath,
+    projectPath: agentHome,
+    errors: ['Hook load failed: Duplicate hooks file detected'],
+  }], null, 2));
+  fs.mkdirSync(home, { recursive: true });
+
+  const result = runNoesis([
+    'launch',
+    '--profile', 'coder',
+    '--runtime', 'claude',
+    '--agent-id', 'claude-local',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    '--help',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      PATH: `${fakeClaude.binDir}${path.delimiter}${process.env.PATH || ''}`,
+      FAKE_CLAUDE_LOG: fakeClaude.logFile,
+      FAKE_CLAUDE_STATE: fakeClaude.stateFile,
+      FAKE_CLAUDE_INSTALL_PATH: fakeClaude.installPath,
+      FAKE_CLAUDE_PLUGIN_VERSION: fakeClaude.version,
+    },
+  });
+  const data = JSON.parse(result.stdout);
+  const action = data.setup.actions.find((item) => item.phase === 'skill' && item.name === 'pamem');
+  const pluginState = JSON.parse(fs.readFileSync(fakeClaude.stateFile, 'utf8'))[0];
+
+  assert.equal(data.status, 'ok');
+  assert.equal(action?.status, 'ok');
+  assert.equal(action.report.actions[0].action, 'refreshed');
+  assert.equal(action.report.actions[0].command, 'claude plugin update');
+  assert.equal(action.report.capability.runtimes.claude.status, 'ok');
+  assert.equal(action.report.capability.runtimes.claude.scope, 'project');
+  assert.equal(action.report.capability.runtimes.claude.version, '0.9.2');
+  assert.equal(action.report.capability.runtimes.claude.install_path, fakeClaude.installPath);
+  assert.equal(action.report.capability.runtimes.claude.project_path, agentHome);
+  assert.equal(action.report.capability.runtimes.claude.standard_hook.status, 'ok');
+  assert.equal(pluginState.version, '0.9.2');
+  assert.equal(pluginState.installPath, fakeClaude.installPath);
+  assert.equal(pluginState.projectPath, agentHome);
+  assert.equal(pluginState.errors, undefined);
+  assert.match(fs.readFileSync(fakeClaude.logFile, 'utf8'), /plugin update pamem@phlens -s project/);
 });
 
 
@@ -344,7 +450,7 @@ test('plain launch does not require LoreForge component resolution', (t) => {
 });
 
 
-test('launch installs missing enabled components before setup', (t) => {
+test('launch installs missing enabled components before setup when no bundled source is available', (t) => {
   const root = tempRoot(t);
   const home = path.join(root, 'home');
   const memory = path.join(root, 'memory');
@@ -380,8 +486,13 @@ test('launch installs missing enabled components before setup', (t) => {
 
   assert.equal(data.status, 'ok');
   assert.equal(data.downstream_execution, 'runtime-not-run');
-  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'installed'), true);
-  assert.equal(fs.existsSync(path.join(componentDir, 'pamem', 'bin', 'pamem.mjs')), true);
+  if (fs.existsSync(path.join(REPO_ROOT, 'node_modules', '@phlens', 'pamem', 'bin', 'pamem.mjs'))) {
+    assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'bundled'), true);
+    assert.equal(fs.existsSync(path.join(componentDir, 'pamem', 'bin', 'pamem.mjs')), false);
+  } else {
+    assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'installed'), true);
+    assert.equal(fs.existsSync(path.join(componentDir, 'pamem', 'bin', 'pamem.mjs')), true);
+  }
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', 'config.toml')), true);
 });
 
@@ -469,6 +580,30 @@ test('list and remove expose Noesis runtime management surface', (t) => {
   assert.equal(fs.existsSync(path.join(agentHome, '.codex', 'skills', 'memory-rule')), false);
   const hooks = JSON.parse(fs.readFileSync(path.join(agentHome, '.codex', 'hooks.json'), 'utf8'));
   assert.deepEqual(hooks.hooks.SessionStart[0].hooks.map((hook) => hook.command), ['/custom/tools/memory-session-start.sh']);
+});
+
+
+test('remove is a no-op when the resolved agent home is missing', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  fs.mkdirSync(home);
+
+  const removed = JSON.parse(runNoesis([
+    'remove',
+    '--agent-id', 'already-gone',
+    '--json',
+  ], { cwd: root, home }).stdout);
+  const expectedHome = path.join(home, '.local', 'share', 'pamem', 'agents', 'already-gone');
+
+  assert.equal(removed.status, 'ok');
+  assert.equal(removed.workspace, expectedHome);
+  assert.deepEqual(removed.actions, [{
+    action: 'workspace-missing',
+    status: 'skipped',
+    path: expectedHome,
+    reason: 'not-found',
+  }]);
+  assert.equal(fs.existsSync(expectedHome), false);
 });
 
 
