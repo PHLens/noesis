@@ -138,3 +138,55 @@ test('update can skip installing unresolved components', (t) => {
   assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'missing'), true);
   assert.equal(fs.existsSync(componentDir), false);
 });
+
+
+test('update can repair LoreForge entry skill visibility in a workspace', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const workspace = path.join(root, 'workspace');
+  const componentDir = path.join(root, 'components');
+  const remoteRoot = path.join(root, 'remotes');
+  const loreforgeRemote = path.join(remoteRoot, 'LoreForge.git');
+  fs.mkdirSync(home);
+  fs.mkdirSync(workspace);
+  fs.mkdirSync(remoteRoot, { recursive: true });
+  makeGitRemote(makeLoreForgeComponent(path.join(root, 'sources')), loreforgeRemote);
+
+  runNoesis([
+    'init',
+    '--workspace', workspace,
+    '--with', 'loreforge',
+    '--json',
+  ], {
+    cwd: root,
+    home,
+    env: { NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search') },
+  });
+
+  const result = runNoesis([
+    'update',
+    '--skip-self',
+    '--workspace', workspace,
+    '--with', 'loreforge',
+    '--component-dir', componentDir,
+    '--json',
+  ], {
+    cwd: root,
+    home,
+    env: {
+      NOESIS_LOREFORGE_REPO: loreforgeRemote,
+      NOESIS_COMPONENT_SEARCH_DIRS: path.join(root, 'empty-search'),
+    },
+  });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.workspace_update.status, 'ok');
+  assert.equal(data.actions.some((action) => action.phase === 'component' && action.name === 'loreforge' && action.action === 'installed'), true);
+  assert.equal(data.actions.some((action) => action.phase === 'skill' && action.name === 'loreforge' && action.action === 'add'), true);
+  assert.equal(fs.realpathSync(path.join(workspace, '.codex', 'skills', 'loreforge')), path.join(componentDir, 'LoreForge', 'skills', 'loreforge'));
+
+  const config = fs.readFileSync(path.join(workspace, '.noesis', 'config.toml'), 'utf8');
+  assert.match(config, /component_source = ".*LoreForge/);
+  assert.match(config, /required_entry_skill_source = ".*LoreForge.*skills.*loreforge/);
+});

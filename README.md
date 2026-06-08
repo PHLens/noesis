@@ -154,7 +154,7 @@ for development and smoke tests.
 
 ```bash
 noesis launch [--name <task>] [--role <role>] [--runtime codex|claude|cli] [--resume] [--rm] [--json]
-noesis update [--with pamem,loreforge|none] [--component-dir <path>] [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--no-install-components] [--skip-self] [--json]
+noesis update [--workspace <path>] [--with pamem,loreforge|none] [--component-dir <path>] [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--no-install-components] [--skip-self] [--json]
 noesis list [--json]
 noesis remove [--workspace <path>|--agent-id <id>] [--json]
 noesis init [--workspace <path>] [--with pamem,loreforge|none] [--force] [--json]
@@ -215,7 +215,12 @@ that instance, not user-facing work containers.
   entrypoints. It updates Noesis when the package is a git checkout, resolves
   pamem/LoreForge through the same component rules as launch/setup, installs
   missing enabled components into the managed component directory by default,
-  and fast-forwards resolved git checkouts.
+  and fast-forwards resolved git checkouts. When `--workspace <path>` is
+  provided for an initialized Noesis workspace, it also updates that workspace's
+  `.noesis/config.toml` component source/command fields, repairs Noesis
+  entry-skill links and the LoreForge entry skill from the resolved component
+  source, then runs doctor. If the workspace has no Noesis manifest, repair is
+  skipped and reported without creating one.
 - `list` is the Noesis user-facing replacement for `pamem list`; it lists
   task instances, compatibility CLI agent homes, and local Slock workspaces.
 - `remove` is the Noesis user-facing replacement for `pamem remove`; it removes
@@ -264,7 +269,11 @@ command. Resolution order is:
 the managed component directory by default before running setup and doctor:
 pamem for plain runtime launch, and LoreForge only when explicitly enabled or
 when wiki/domain setup is requested. `update` installs missing enabled
-components into the managed component directory by default before status checks.
+components into the managed component directory by default before status checks;
+with `--workspace <path>`, it also refreshes entry skill visibility in that
+workspace so a newly installed or updated LoreForge component exposes the
+`loreforge` skill there. Workspace repair requires an existing
+`.noesis/config.toml`; otherwise `update` reports `repair-skipped`.
 `setup` remains conservative for development and smoke tests: it only discovers
 existing checkouts unless `--install-components` is passed. Use `noesis update`
 to maintain Noesis, pamem, and LoreForge together; use `--no-install-components`
@@ -307,6 +316,12 @@ doctor. By default the registry is isolated under
 `.noesis/loreforge/registry.toml` in the target workspace so temporary setup and
 smoke tests do not write the user's machine-local LoreForge registry; pass
 `--loreforge-registry <path>` when setup should use a specific registry file.
+
+Noesis launch keeps CLI session ids in session JSON metadata only. During CLI
+launch it removes generated `pamem-session` blocks from `current-task.md` and
+generated `session_id=` runtime-session rows from `work-log.md` so startup hooks
+do not load long runtime ids as task context; it does not remove ordinary user
+task notes or work-log entries.
 
 `noesis event check` is a read-only gate for a learning-event JSON artifact. It
 validates schema, compact source references, case shape, impact metadata,

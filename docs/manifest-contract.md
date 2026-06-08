@@ -277,12 +277,20 @@ Allowed:
 - update the Noesis checkout when it is a git checkout with an upstream;
 - install missing enabled pamem/LoreForge components into the managed component
   directory by default;
-- fast-forward resolved pamem/LoreForge git checkouts.
+- fast-forward resolved pamem/LoreForge git checkouts;
+- when `--workspace <path>` points at an initialized Noesis workspace, rewrite
+  `.noesis/config.toml` component source/command fields from the resolved
+  component sources, refresh Noesis and LoreForge entry skill visibility in that
+  workspace, and run doctor;
+- report workspace repair as skipped without creating `.noesis/config.toml`
+  when `--workspace <path>` does not contain a Noesis manifest.
 
 Requires explicit command intent, flags, or review:
 
 - updating component checkouts through `noesis update` or setup
   `--update-components`;
+- rewriting workspace component source/command fields through
+  `noesis update --workspace <path>`;
 - enabling runtime capabilities;
 - overwriting existing config files.
 

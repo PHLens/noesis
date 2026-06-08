@@ -552,6 +552,81 @@ test('task instance sessions are recorded without injecting session history into
 });
 
 
+test('compatibility agent sessions are recorded without injecting session history into startup notes', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const pamem = makePamemComponent(root);
+  fs.mkdirSync(home);
+
+  runNoesis([
+    'launch',
+    '--agent-id', 'compat-session-cleanup',
+    '--role', 'coder',
+    '--runtime', 'cli',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], { cwd: root, home });
+
+  const agentHome = path.join(home, '.local', 'share', 'pamem', 'agents', 'compat-session-cleanup');
+  fs.writeFileSync(path.join(agentHome, 'current-task.md'), [
+    '# Current Task',
+    '',
+    '<!-- pamem-session:start -->',
+    '## Runtime Session',
+    '- Latest CLI session_id: `11111111-1111-4111-8111-111111111111`',
+    '- Action: resume',
+    '- Updated at: 2026-01-01T00:00:00Z',
+    '<!-- pamem-session:end -->',
+    '',
+    '## Active Task',
+    '- Keep this line',
+    '',
+  ].join('\n'));
+  fs.writeFileSync(path.join(agentHome, 'work-log.md'), [
+    '# Work Log',
+    '',
+    '## Runtime Sessions',
+    '- 2026-01-01T00:00:00Z session_id=11111111-1111-4111-8111-111111111111 action=resume session_file=/tmp/session.json',
+    '',
+    '- Manual session_id=keep-for-user-note',
+    '- Keep this entry',
+    '',
+  ].join('\n'));
+
+  const result = runNoesis([
+    'launch',
+    '--agent-id', 'compat-session-cleanup',
+    '--role', 'coder',
+    '--runtime', 'cli',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--memory-repo', memory,
+    '--',
+    'echo',
+    'ok',
+  ], { cwd: root, home });
+
+  assert.equal(result.stdout.includes('ok'), true);
+
+  const currentTask = fs.readFileSync(path.join(agentHome, 'current-task.md'), 'utf8');
+  const workLog = fs.readFileSync(path.join(agentHome, 'work-log.md'), 'utf8');
+  const latestSession = JSON.parse(fs.readFileSync(path.join(agentHome, 'session.json'), 'utf8'));
+
+  assert.equal(currentTask.includes('session_id'), false);
+  assert.equal(currentTask.includes('Keep this line'), true);
+  assert.equal(workLog.includes('11111111-1111-4111-8111-111111111111'), false);
+  assert.equal(workLog.includes('session_id=keep-for-user-note'), true);
+  assert.equal(workLog.includes('Keep this entry'), true);
+  assert.equal(typeof latestSession.session_id, 'string');
+});
+
+
 test('launch enables pamem Claude runtime capability', (t) => {
   const root = tempRoot(t);
   const home = path.join(root, 'home');
