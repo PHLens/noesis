@@ -153,7 +153,7 @@ or binds the selected runtime. Lower-level bootstrap commands remain available
 for development and smoke tests.
 
 ```bash
-noesis launch [--name <task>] [--role <role>] [--runtime codex|claude|cli] [--resume] [--rm] [--json]
+noesis launch [--name <task>] [--role <role>] [--runtime codex|claude|cli] [--with pamem,loreforge|loreforge] [--resume] [--rm] [--json]
 noesis update [--workspace <path>] [--with pamem,loreforge|none] [--component-dir <path>] [--component pamem=/path/to/pamem] [--component loreforge=/path/to/LoreForge] [--no-install-components] [--skip-self] [--json]
 noesis list [--json]
 noesis remove [--workspace <path>|--agent-id <id>] [--json]
@@ -304,8 +304,10 @@ task launch does not require `--memory-repo`: new instances inherit the
 configured/default pamem memory repo and store that binding in instance
 metadata; existing instances reject ordinary launches that request a different
 memory repo. Use `--git-author-name` and `--git-author-email` to pass the
-corresponding `pamem setup` settings. Use `--with none` or `--with loreforge`
-when you only want Noesis/LoreForge bootstrap without pamem.
+corresponding `pamem setup` settings. Runtime launch requires pamem, so
+`launch --with loreforge` keeps pamem enabled and prepares `pamem,loreforge`.
+Use lower-level `setup --with none` or `setup --with loreforge` only when you
+want Noesis/LoreForge bootstrap without pamem.
 
 When LoreForge is enabled with a local source, setup installs the LoreForge
 entry skill. If `--loreforge-wiki <path>` and `--loreforge-domain <name>` are
