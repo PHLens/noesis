@@ -141,6 +141,27 @@ process.exit(2);
 }
 
 
+function makeLoreForgeComponent(root) {
+  const source = path.join(root, 'LoreForge');
+  fs.mkdirSync(path.join(source, 'bin'), { recursive: true });
+  fs.mkdirSync(path.join(source, 'skills', 'loreforge'), { recursive: true });
+  fs.writeFileSync(path.join(source, 'skills', 'loreforge', 'SKILL.md'), '---\nname: loreforge\ndescription: test\n---\n');
+  fs.writeFileSync(
+    path.join(source, 'bin', 'loreforge'),
+    `#!/usr/bin/env node
+const [command] = process.argv.slice(2);
+if (command === 'status' || command === 'validate') {
+  console.log(JSON.stringify({ status: 'ok' }));
+  process.exit(0);
+}
+process.exit(0);
+`,
+  );
+  fs.chmodSync(path.join(source, 'bin', 'loreforge'), 0o755);
+  return source;
+}
+
+
 function ensureBundledPamem(t) {
   const source = path.join(REPO_ROOT, 'node_modules', '@phlens', 'pamem');
   if (fs.existsSync(source)) return source;
@@ -743,6 +764,40 @@ test('plain launch does not require LoreForge component resolution', (t) => {
   assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'loreforge'), false);
   assert.equal(data.setup.components.loreforge.enabled, false);
   assert.equal(fs.existsSync(componentDir), false);
+});
+
+
+test('launch --with loreforge keeps pamem enabled', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const pamem = makePamemComponent(root);
+  const loreforge = makeLoreForgeComponent(root);
+  fs.mkdirSync(home);
+
+  const result = runNoesis([
+    'launch',
+    '--profile', 'coder',
+    '--runtime', 'cli',
+    '--agent-id', 'coder-loreforge',
+    '--with', 'loreforge',
+    '--component', `pamem=${pamem}`,
+    '--component', `loreforge=${loreforge}`,
+    '--memory-repo', memory,
+    '--json',
+    '--',
+    'echo',
+    'ok',
+  ], { cwd: root, home });
+  const data = JSON.parse(result.stdout);
+
+  assert.equal(data.status, 'ok');
+  assert.equal(data.setup.components.pamem.enabled, true);
+  assert.equal(data.setup.components.loreforge.enabled, true);
+  assert.equal(data.setup.actions.some((action) => action.phase === 'component' && action.name === 'pamem' && action.action === 'init'), true);
+  assert.equal(data.setup.actions.some((action) => action.phase === 'skill' && action.name === 'loreforge'), true);
+  assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-loreforge', 'config.toml')), true);
+  assert.equal(fs.realpathSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-loreforge', '.codex', 'skills', 'loreforge')), path.join(loreforge, 'skills', 'loreforge'));
 });
 
 
