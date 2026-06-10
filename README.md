@@ -75,7 +75,7 @@ Implemented:
 - `lib/skill-manager.mjs`: skill-manager CLI for symlink skill visibility and known capability lifecycle operations
 - command-level help for `noesis`, `noesis skill`, and each skill subcommand
 - plugin/runtime capability status and mutation for `humanize`, `superpowers`, and `pamem`
-- managed skill sources for `code-review`, `doc-review`, `heuristic-intake`, `noesis-skill-manager`, and `shared-devflow`
+- managed skill sources for `code-review`, `doc-review`, `heuristic-intake`, `noesis-skill-manager`, `profile-regression-analysis`, and `shared-devflow`
 - `skills/heuristic-intake/`: drafts compact learning-event artifacts from durable task residue
 - `tests/skill_manager.test.mjs`: skill-manager CLI tests
 
@@ -439,6 +439,7 @@ Known Claude plugin capabilities (`humanize`, `superpowers`) are enabled and dis
 - `task_plan.md`: current work tracker
 - `progress.md`: current progress and next steps
 - `skills/noesis-skill-manager/SKILL.md`: thin runtime entrypoint for the skill-manager CLI
+- `skills/profile-regression-analysis/SKILL.md`: ML training profile regression attribution workflow
 - `skills/heuristic-intake/SKILL.md`: intake entry skill for learning-event drafting
 - `skills/heuristic-intake/references/durability-rules.md`: durability and routing-hint rules
 - `skills/heuristic-intake/references/event-template.json`: learning-event draft template
