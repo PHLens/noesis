@@ -60,8 +60,11 @@ function writeConfig(root, agentHome) {
   fs.writeFileSync(config, 'default_profile = "' + value('--profile') + '"\\n[memory_repo]\\npath = "' + (value('--memory-repo') || path.join(root, 'memory')) + '"\\n[runtime]\\nmode = "' + value('--runtime') + '"\\nagent_id = "' + value('--agent-id') + '"\\n');
 }
 function install(root, agentHome) {
+  const profile = value('--profile') || 'onboarding';
+  const memoryRepo = value('--memory-repo') || path.join(root, 'memory');
   fs.mkdirSync(path.join(root, '.codex', 'skills'), { recursive: true });
   fs.mkdirSync(path.join(root, '.codex'), { recursive: true });
+  fs.mkdirSync(memoryRepo, { recursive: true });
   fs.writeFileSync(path.join(root, '.codex', 'config.toml'), '[features]\\nhooks = true\\n');
   fs.writeFileSync(path.join(root, '.codex', 'hooks.json'), JSON.stringify({ hooks: { SessionStart: [{ matcher: 'startup|resume', hooks: [
     { type: 'command', command: agentHome ? repoRoot + '/scripts/memory-session-start.sh' : '.pamem/scripts/memory-session-start.sh' },
@@ -70,6 +73,7 @@ function install(root, agentHome) {
   fs.mkdirSync(agentHome ? root : path.join(root, 'notes'), { recursive: true });
   fs.writeFileSync(agentHome ? path.join(root, 'current-task.md') : path.join(root, 'notes', 'current-task.md'), '# Current\\n');
   fs.writeFileSync(agentHome ? path.join(root, 'work-log.md') : path.join(root, 'notes', 'work-log.md'), '# Work\\n');
+  fs.writeFileSync(path.join(memoryRepo, 'MEMORY.md'), 'Role guide: roles/' + profile + '/' + profile + '.md\\n');
   fs.mkdirSync(path.join(root, '.codex', 'skills'), { recursive: true });
   for (const name of ['memory-lint', 'memory-rule']) {
     const link = path.join(root, '.codex', 'skills', name);
@@ -264,6 +268,8 @@ test('launch prepares an agent home and reports runtime command without starting
   assert.deepEqual(data.launch_command, ['codex', '--dangerously-bypass-approvals-and-sandbox', '--help']);
   assert.equal(data.runtime_state.agent_id, 'coder-local');
   assert.equal(data.runtime_state.memory_repo, memory);
+  assert.match(fs.readFileSync(path.join(memory, 'MEMORY.md'), 'utf8'), /roles\/coder\/coder\.md/);
+  assert.doesNotMatch(fs.readFileSync(path.join(memory, 'MEMORY.md'), 'utf8'), /roles\/<role>\//);
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', 'config.toml')), true);
   assert.equal(fs.existsSync(path.join(home, '.local', 'share', 'pamem', 'agents', 'coder-local', '.noesis', 'config.toml')), true);
 });
