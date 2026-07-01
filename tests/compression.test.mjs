@@ -148,7 +148,7 @@ test('compression summary surfaces repeated learning artifacts without writing o
   writeProposal(workspace, '2026-05-22T02-11-00Z__repeat-owner-handoff-2');
   const before = snapshot(workspace);
 
-  const result = runNoesis(['compression', 'summary', '--json'], { cwd: workspace });
+  const result = runNoesis(['compression', 'summary', '--stale-days', '9999', '--json'], { cwd: workspace });
   const after = snapshot(workspace);
   const data = JSON.parse(result.stdout);
 
