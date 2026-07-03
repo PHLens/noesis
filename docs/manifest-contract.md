@@ -40,8 +40,11 @@ ${XDG_DATA_HOME:-~/.local/share}/noesis/instances/<internal-id>/
 ```
 
 `instance.json` is Noesis-owned metadata for the task instance: user-facing
-name, immutable internal id, role, runtime, task directory, and memory repo
-binding. It is not a pamem memory file.
+name, immutable internal id, role, runtime, task directory, memory repo binding,
+and resolved capability envelope. The envelope records which pamem memory
+profile, default skills, and LoreForge wiki grants Noesis resolved for the role.
+It is not a pamem memory file, and it does not make Noesis the owner of memory
+or wiki semantics.
 
 Downstream systems keep their own config:
 
@@ -266,6 +269,8 @@ Allowed:
   Noesis task-instance root;
 - store the resolved memory repo binding in task-instance metadata and reject
   ordinary launch attempts that would silently change that binding;
+- store the resolved role capability envelope in task-instance metadata so
+  resume does not silently change memory, skill, or wiki grants;
 - materialize role default skill visibility inside the task-instance workspace
   without mutating global skill visibility;
 - bind existing Slock workspaces without creating or resuming a Slock agent;

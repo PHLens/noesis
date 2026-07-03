@@ -327,16 +327,27 @@ test('launch creates and resumes a named task instance without role-local state 
   assert.equal(state.kind, 'task-instance');
   assert.equal(state.name, 'task52-noesis-role-startup');
   assert.equal(state.role, 'planner');
+  assert.equal(state.pamem_profile, 'researcher');
   assert.notEqual(state.internal_instance_id, 'task52-noesis-role-startup');
   assert.equal(state.agent_id, state.internal_instance_id);
   assert.equal(state.memory_repo, memory);
   assert.equal(state.task_dir, path.join(state.root, 'tasks', 'task52-noesis-role-startup'));
+  assert.equal(state.capabilities.role, 'planner');
+  assert.equal(state.capabilities.memory.owner, 'pamem');
+  assert.equal(state.capabilities.memory.profile, 'researcher');
+  assert.equal(state.capabilities.memory.role_guide, 'roles/researcher/researcher.md');
+  assert.deepEqual(state.capabilities.skills.default, ['doc-review', 'shared-devflow']);
+  assert.deepEqual(state.role_skills, ['doc-review', 'shared-devflow']);
+  assert.equal(state.capabilities.wiki.owner, 'LoreForge');
+  assert.deepEqual(state.capabilities.wiki.access, ['read', 'stage-proposal']);
+  assert.deepEqual(state.capabilities.wiki.domains, []);
   assert.equal(fs.existsSync(path.join(state.root, '.noesis', 'instance.json')), true);
   assert.equal(fs.existsSync(path.join(state.root, 'notes', 'current-task.md')), true);
   assert.equal(fs.existsSync(path.join(state.root, 'notes', 'work-log.md')), true);
   assert.equal(fs.existsSync(path.join(state.task_dir, 'plan')), true);
   assert.equal(fs.existsSync(path.join(state.root, '.codex', 'skills', 'doc-review')), true);
   assert.equal(fs.existsSync(path.join(state.root, '.codex', 'skills', 'noesis-skill-manager')), false);
+  assert.match(fs.readFileSync(path.join(memory, 'MEMORY.md'), 'utf8'), /roles\/researcher\/researcher\.md/);
 
   const doctor = JSON.parse(runNoesis(['doctor', '--workspace', state.root, '--json'], { cwd: root, home }).stdout);
   assert.equal(doctor.summary.error_count, 0);
@@ -357,7 +368,9 @@ test('launch creates and resumes a named task instance without role-local state 
   assert.equal(second.runtime_state.root, state.root);
   assert.equal(second.runtime_state.internal_instance_id, state.internal_instance_id);
   assert.equal(second.runtime_state.role, 'planner');
+  assert.equal(second.runtime_state.pamem_profile, 'researcher');
   assert.equal(second.runtime_state.memory_repo, memory);
+  assert.deepEqual(second.runtime_state.capabilities, state.capabilities);
 
   const printed = runNoesis([
     'launch',
@@ -402,6 +415,74 @@ test('launch creates and resumes a named task instance without role-local state 
 });
 
 
+test('launch resumes legacy planner instance without remapping stored capabilities', (t) => {
+  const root = tempRoot(t);
+  const home = path.join(root, 'home');
+  const memory = path.join(root, 'memory');
+  const pamem = makePamemComponent(root);
+  const instanceRoot = path.join(home, '.local', 'share', 'noesis', 'instances', 'ti-legacy-planner');
+  const taskDir = path.join(instanceRoot, 'tasks', 'legacy-planner');
+  fs.mkdirSync(path.join(instanceRoot, '.noesis'), { recursive: true });
+  fs.mkdirSync(path.join(instanceRoot, '.pamem'), { recursive: true });
+  fs.mkdirSync(taskDir, { recursive: true });
+  fs.mkdirSync(memory, { recursive: true });
+  fs.mkdirSync(home, { recursive: true });
+  fs.writeFileSync(path.join(instanceRoot, '.pamem', 'config.toml'), [
+    'default_profile = "coder"',
+    '[memory_repo]',
+    `path = "${memory}"`,
+    '[runtime]',
+    'mode = "cli"',
+    'agent_id = "ti-legacy-planner"',
+    '',
+  ].join('\n'));
+  fs.writeFileSync(path.join(instanceRoot, '.noesis', 'instance.json'), JSON.stringify({
+    version: 1,
+    kind: 'task-instance',
+    name: 'legacy-planner',
+    internal_instance_id: 'ti-legacy-planner',
+    role: 'planner',
+    pamem_profile: 'coder',
+    runtime: 'cli',
+    launcher: 'codex',
+    state_root: instanceRoot,
+    agent_id: 'ti-legacy-planner',
+    memory_repo: memory,
+    memory_entry: path.join(memory, 'MEMORY.md'),
+    task_dir: taskDir,
+    disposable: false,
+    status: 'active',
+    created_at: '2026-07-01T00:00:00.000Z',
+    updated_at: '2026-07-01T00:00:00.000Z',
+    role_skills: ['shared-devflow'],
+  }, null, 2) + '\n');
+
+  const resumed = runNoesis([
+    'launch',
+    '--name', 'legacy-planner',
+    '--runtime', 'codex',
+    '--with', 'pamem',
+    '--component', `pamem=${pamem}`,
+    '--json',
+    '--',
+    '--help',
+  ], { cwd: root, home });
+  const data = JSON.parse(resumed.stdout);
+  const state = data.runtime_state;
+
+  assert.equal(data.status, 'ok');
+  assert.equal(state.root, instanceRoot);
+  assert.equal(state.role, 'planner');
+  assert.equal(state.pamem_profile, 'coder');
+  assert.equal(state.capabilities.memory.profile, 'coder');
+  assert.equal(state.capabilities.memory.role_guide, 'roles/coder/coder.md');
+  assert.deepEqual(state.capabilities.skills.default, ['shared-devflow']);
+  assert.equal(fs.existsSync(path.join(instanceRoot, '.codex', 'skills', 'shared-devflow')), true);
+  assert.equal(fs.existsSync(path.join(instanceRoot, '.codex', 'skills', 'doc-review')), false);
+  assert.match(fs.readFileSync(path.join(memory, 'MEMORY.md'), 'utf8'), /roles\/coder\/coder\.md/);
+});
+
+
 test('launch can generate a persistent task instance and list instance metadata', (t) => {
   const root = tempRoot(t);
   const home = path.join(root, 'home');
@@ -427,6 +508,9 @@ test('launch can generate a persistent task instance and list instance metadata'
   assert.equal(data.runtime_state.kind, 'task-instance');
   assert.match(data.runtime_state.name, /^coder-\d{8}T\d{6}-[a-f0-9]{8}$/);
   assert.equal(data.runtime_state.role, 'coder');
+  assert.equal(data.runtime_state.pamem_profile, 'coder');
+  assert.equal(data.runtime_state.capabilities.memory.profile, 'coder');
+  assert.deepEqual(data.runtime_state.capabilities.skills.default, ['shared-devflow']);
   assert.equal(data.runtime_state.task_dir, path.join(data.runtime_state.root, 'tasks', data.runtime_state.name));
 
   const listed = JSON.parse(runNoesis(['list', '--json'], { cwd: root, home }).stdout);
@@ -435,6 +519,8 @@ test('launch can generate a persistent task instance and list instance metadata'
   assert.equal(instance?.kind, 'task-instance');
   assert.equal(instance.name, data.runtime_state.name);
   assert.equal(instance.role, 'coder');
+  assert.equal(instance.pamem_profile, 'coder');
+  assert.equal(instance.capabilities.memory.profile, 'coder');
   assert.equal(instance.runtime, 'cli');
   assert.equal(instance.state_root, data.runtime_state.root);
   assert.equal(instance.task_dir, data.runtime_state.task_dir);
